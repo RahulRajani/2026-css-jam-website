@@ -354,6 +354,8 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         state->player.y = SCREEN_HEIGHT / 2.0f;
         state->player.velx = 0.0f;
         state->player.vely = 0.0f;
+        state->chronos.position = state->chronos.waypointA;
+        state->chronos.movingToB = true;
     }
 
     if (!state->gameOver && !state->victory && state->timeRemaining > 0.0f) {
@@ -372,6 +374,8 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
                 state->player.y = SCREEN_HEIGHT / 2.0f;
                 state->player.velx = 0.0f;
                 state->player.vely = 0.0f;
+                state->chronos.position = state->chronos.waypointA;
+                state->chronos.movingToB = true;
                 state->testItem.collected = false;
                 state->chronosHitCooldown = 0.0f;
                 state->playerHitFlash = 0.0f;
@@ -614,6 +618,9 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
     }
     
     DrawText(timerText.c_str(), posX, posY, fontSize, textColor);
+
+    std::string loopText = "Loop: " + std::to_string(state->currentLoop) + "/3";
+    DrawText(loopText.c_str(), 8, 22, 10, RAYWHITE);
 }
 
 void mainLoop(void* data) {
