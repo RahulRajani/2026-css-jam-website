@@ -134,7 +134,7 @@ Vector2 getGameMousePos() {
 
 //UI Functions:
 void drawTitle(const char* title){
-	int titleFontSize=40;
+	int titleFontSize=30;
 	int titleWidth=MeasureText(title,titleFontSize);
 	DrawText(title,(SCREEN_WIDTH-titleWidth)/2,20,titleFontSize,DARKGRAY);
 }
@@ -167,7 +167,7 @@ void menuLoop(void *data){
         // Trigger transition to credits state
     }
 
-	drawTitle("Game Name");
+	drawTitle("The Last Loop");
 	draw_button("Play",playButton,playHovered);
 	draw_button("Credits",creditsButton,creditsHovered);
 }
@@ -495,10 +495,38 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
             PLAYER_ACCELERATION * deltaTime
         );
 
-        state->player.x += state->player.velx * deltaTime;
-        state->player.y += state->player.vely * deltaTime;
+        const float halfPlayer = PLAYER_RECT_SIZE * 0.5f;
+        const Rectangle worldBounds = getWorldBounds(state);
+        const float nextX = std::clamp(
+            state->player.x + state->player.velx * deltaTime,
+            worldBounds.x + halfPlayer,
+            worldBounds.x + worldBounds.width - halfPlayer
+        );
+        const float nextY = std::clamp(
+            state->player.y + state->player.vely * deltaTime,
+            worldBounds.y + halfPlayer,
+            worldBounds.y + worldBounds.height - halfPlayer
+        );
 
-        clampPlayerToWorld(state);
+        const Rectangle nextXBounds = {
+            nextX - halfPlayer, state->player.y - halfPlayer,
+            PLAYER_RECT_SIZE, PLAYER_RECT_SIZE
+        };
+        if (!CheckCollisionRecs(nextXBounds, temporaryWall)) {
+            state->player.x = nextX;
+        } else {
+            state->player.velx = 0.0f;
+        }
+
+        const Rectangle nextYBounds = {
+            state->player.x - halfPlayer, nextY - halfPlayer,
+            PLAYER_RECT_SIZE, PLAYER_RECT_SIZE
+        };
+        if (!CheckCollisionRecs(nextYBounds, temporaryWall)) {
+            state->player.y = nextY;
+        } else {
+            state->player.vely = 0.0f;
+        }
     }
 
     if (!state->gameOver && !state->victory && state->chronosHitCooldown <= 0.0f) {
