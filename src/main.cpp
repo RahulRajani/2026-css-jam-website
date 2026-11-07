@@ -2,9 +2,9 @@
 #include <emscripten/emscripten.h>
 #endif
 #include <raylib.h>
-#include "chronos.h"
-#include "lighting.h"
-#include "Map.h"
+#include "../Include/chronos.h"
+#include "../Include/lighting.h"
+#include "../Include/Map.h"
 
 #include <cstdint>
 #include <vector>
@@ -20,6 +20,7 @@
 #define PLAYER_LIGHT_SIZE 100
 
 enum ScreenState {
+    SCREEN_MENU,
     SCREEN_SELECT,
     SCREEN_DIALOGUE,
     SCREEN_GAME
@@ -48,6 +49,7 @@ struct GameState {
 
     Player player;
     Chronos chronos;
+    TileMap islandMap;
     LightingMap lightingMap;
 
     int currentLoop = 1;
@@ -58,7 +60,6 @@ struct GameState {
     GameAssets assets;
 
     RenderTexture2D screenTexture;
-	int gameControl;
 };
 
 Vector2 getGameMousePos() {
@@ -67,7 +68,7 @@ Vector2 getGameMousePos() {
     int scrWidth = GetScreenWidth();
     int scrHeight = GetScreenHeight();
 
-    int scale = std::min(scrWidth / SCREEN_WIDTH, scrHeight / SCREEN_HEIGHT);
+    int scale = std::max(1, std::min(scrWidth / SCREEN_WIDTH, scrHeight / SCREEN_HEIGHT));
 
     int scrBufferWidth = SCREEN_WIDTH * scale;
     int scrBufferHeight = SCREEN_HEIGHT * scale;
@@ -107,34 +108,18 @@ void draw_button(const char* title, Rectangle button,bool overHover){
 
 
 void menuLoop(void *data){
-	GameState* state=(GameState *) data;
-	float deltaTime=GetFrameTime();
-
-	//Calculates window dimensions and scaling offsets.
-	int scrWidth=GetScreenWidth();
-	int scrHeight=GetScreenHeight();
-	int scale=std::min(scrWidth/SCREEN_WIDTH,scrHeight/SCREEN_HEIGHT);
-	int scrBufferWidth=SCREEN_WIDTH*scale;
-	int scrBufferHeight=SCREEN_HEIGHT*scale;
-	float offsetX=(scrWidth-scrBufferWidth)/2.0f;
-	float offsetY=(scrHeight-scrBufferHeight)/2.0f;
-
-
-	Vector2 mousePos=GetMousePosition();
-	Vector2 vMouse={
-		(mousePos.x-offsetX)/scale,
-		(mousePos.y-offsetY)/scale
-	};
+	GameState* state = static_cast<GameState*>(data);
+	const Vector2 mousePos = getGameMousePos();
 
 	//Bounding boxes.
 	Rectangle playButton = { (SCREEN_WIDTH - 200) / 2.0f, (SCREEN_HEIGHT / 2.0f) - 40.0f, 200.0f, 50.0f };
     Rectangle creditsButton = { (SCREEN_WIDTH - 200) / 2.0f, (SCREEN_HEIGHT / 2.0f) + 20.0f, 200.0f, 50.0f };
 
-	bool playHovered = CheckCollisionPointRec(vMouse, playButton);
-    bool creditsHovered = CheckCollisionPointRec(vMouse, creditsButton);
+	bool playHovered = CheckCollisionPointRec(mousePos, playButton);
+    bool creditsHovered = CheckCollisionPointRec(mousePos, creditsButton);
 
-    if (playHovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        state->gameControl=1;
+	if (playHovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+		state->currentScreen = SCREEN_SELECT;
     }
 	if (creditsHovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         // Trigger transition to credits state
@@ -143,29 +128,6 @@ void menuLoop(void *data){
 	drawTitle("Game Name");
 	draw_button("Play",playButton,playHovered);
 	draw_button("Credits",creditsButton,creditsHovered);
-
-	EndTextureMode();
-
-	//Render texture to window.
-	BeginDrawing();
-	ClearBackground(WHITE);
-
-	float crtRes[2] = {(float)scrBufferWidth, (float)scrBufferHeight};
-	SetShaderValue(state->assets.crtShader, GetShaderLocation(state->assets.crtShader, "resolution"), crtRes, SHADER_UNIFORM_VEC2);
-
-	BeginShaderMode(state->assets.crtShader);
-    DrawTexturePro(
-        state->screenTexture.texture,
-        (Rectangle){0, 0, (float)state->screenTexture.texture.width, (float)-state->screenTexture.texture.height},
-        (Rectangle){ offsetX, offsetY, (float)scrBufferWidth, (float)scrBufferHeight },
-        (Vector2){0.0f, 0.0f}, 0.0f, BLACK
-    );
-    EndShaderMode();
-
-    DrawFPS(10, 10);
-    EndDrawing();
-
-
 }
 
 void DrawSlantedQuad(float x, float y, float w, float h, float slant, Color color) {
@@ -405,6 +367,7 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
     }
 
     ClearBackground(Color{20, 20, 24, 255});
+    state->islandMap.Draw({0.0f, 0.0f}, false);
 
     // Temporary occlusion-test wall; replace with the map's obstacle data later.
     DrawRectangle(140, 58, 4, 108, DARKGRAY);
@@ -456,7 +419,10 @@ void mainLoop(void* data) {
     Vector2 gameMousePos = getGameMousePos();
 
     BeginTextureMode(state->screenTexture);
-        if (state->currentScreen == SCREEN_SELECT) {
+        if (state->currentScreen == SCREEN_MENU) {
+			ClearBackground(WHITE);
+			menuLoop(state);
+		} else if (state->currentScreen == SCREEN_SELECT) {
             selectScreen(state, gameMousePos);
         } else if (state->currentScreen == SCREEN_DIALOGUE) {
             dialogueScreen(state);
@@ -471,7 +437,7 @@ void mainLoop(void* data) {
         int scrWidth = GetScreenWidth();
         int scrHeight = GetScreenHeight();
 
-        int scale = std::min(scrWidth / SCREEN_WIDTH, scrHeight / SCREEN_HEIGHT);
+        int scale = std::max(1, std::min(scrWidth / SCREEN_WIDTH, scrHeight / SCREEN_HEIGHT));
 
         int scrBufferWidth = SCREEN_WIDTH * scale;
         int scrBufferHeight = SCREEN_HEIGHT * scale;
@@ -480,7 +446,6 @@ void mainLoop(void* data) {
         SetShaderValue(state->assets.crtShader, GetShaderLocation(state->assets.crtShader, "resolution"), crtRes, SHADER_UNIFORM_VEC2);
 
         BeginShaderMode(state->assets.crtShader); {
-			menuLoop(state);
             DrawTexturePro(
                 state->screenTexture.texture,
                 (Rectangle){0, 0, (float)state->screenTexture.texture.width, (float)-state->screenTexture.texture.height},
@@ -553,7 +518,26 @@ int main(int argc, char** argv) {
     state.selectedCharacter = 0;
     state.selectAnim = 0.0f;
     state.assets = loadAssets();
-	state.gameControl=0;
+	state.currentScreen = SCREEN_MENU;
+
+    state.islandMap = TileMap(15, 15, 16, 16);
+    state.islandMap.LoadTileset(
+        "assets/TIles/Pixel_Beach_Island_Tileset_v1/spritesheet.png"
+    );
+    state.islandMap.Fill(14); // shallow water
+    for (int y = 0; y < state.islandMap.GetHeight(); ++y) {
+        for (int x = 0; x < state.islandMap.GetWidth(); ++x) {
+            const int dx = x - state.islandMap.GetWidth() / 2;
+            const int dy = y - state.islandMap.GetHeight() / 2;
+            const int distanceSquared = dx * dx + dy * dy;
+
+            if (distanceSquared <= 25) {
+                state.islandMap.SetTile(x, y, 5 + (x + y) % 3); // grass variants
+            } else if (distanceSquared <= 36) {
+                state.islandMap.SetTile(x, y, (x + y) % 3); // sand variants
+            }
+        }
+    }
 
     state.lightingMap = LightingMap(SCREEN_WIDTH, SCREEN_HEIGHT);
     for (int y = 58; y < 166; ++y) {
@@ -575,6 +559,7 @@ int main(int argc, char** argv) {
 
     UnloadRenderTexture(state.screenTexture);
 
+    state.islandMap.Unload();
     unloadAssets(state.assets);
 
     CloseAudioDevice();
