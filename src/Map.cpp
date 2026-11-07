@@ -119,7 +119,7 @@ void TileMap::Draw(Vector2 offset, bool showGrid) const {
                 destination,
                 {0.0f, 0.0f},
                 0.0f,
-                WHITE
+                {70, 85, 80, 255}
             );
         }
     }
