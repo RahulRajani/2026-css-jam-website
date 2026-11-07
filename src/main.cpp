@@ -32,9 +32,25 @@ enum ScreenState {
     SCREEN_GAME
 };
 
+enum GameOverReason {
+    GAME_OVER_NONE,
+    GAME_OVER_TIME,
+    GAME_OVER_CAUGHT
+};
+
 struct Player {
     float x, y;
     float velx, vely;
+};
+
+struct Collectible {
+    Vector2 position;
+    bool collected;
+};
+
+struct Exit {
+    Vector2 position;
+    bool unlocked;
 };
 
 struct GameAssets {
@@ -56,11 +72,18 @@ struct GameState {
     Chronos chronos;
     TileMap islandMap;
     LightingMap lightingMap;
+    Collectible testItem;
+    Exit testExit;
 
     int currentLoop = 1;
     float timeRemaining = 60.0f;
     bool gameOver = false;
+    bool victory = false;
+    GameOverReason gameOverReason = GAME_OVER_NONE;
     bool chronosDangerous = false;
+    float chronosHitCooldown = 0.0f;
+    float playerHitFlash = 0.0f;
+    float playerShakeTimer = 0.0f;
 
     GameAssets assets;
 
@@ -327,7 +350,29 @@ void dialogueScreen(GameState* state) {
 }
 
 void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
-    if (!state->gameOver && state->timeRemaining > 0.0f) {
+    const Rectangle temporaryWall = {140.0f, 58.0f, 4.0f, 108.0f};
+
+    if (state->gameOver && IsKeyPressed(KEY_R)) {
+        state->currentLoop = 1;
+        state->timeRemaining = 60.0f;
+        state->gameOver = false;
+        state->victory = false;
+        state->gameOverReason = GAME_OVER_NONE;
+        state->chronosDangerous = false;
+        state->chronosHitCooldown = 0.0f;
+        state->playerHitFlash = 0.0f;
+        state->playerShakeTimer = 0.0f;
+        state->testItem.collected = false;
+        state->testExit.unlocked = false;
+        state->player.x = SCREEN_WIDTH / 2.0f;
+        state->player.y = SCREEN_HEIGHT / 2.0f;
+        state->player.velx = 0.0f;
+        state->player.vely = 0.0f;
+        state->chronos.position = state->chronos.waypointA;
+        state->chronos.movingToB = true;
+    }
+
+    if (!state->gameOver && !state->victory && state->timeRemaining > 0.0f) {
         state->timeRemaining -= deltaTime;
 
         if (state->timeRemaining < 0.0f) {
@@ -343,25 +388,39 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
                 state->player.y = SCREEN_HEIGHT / 2.0f;
                 state->player.velx = 0.0f;
                 state->player.vely = 0.0f;
+                state->chronos.position = state->chronos.waypointA;
+                state->chronos.movingToB = true;
+                state->testItem.collected = false;
+                state->chronosHitCooldown = 0.0f;
+                state->playerHitFlash = 0.0f;
+                state->playerShakeTimer = 0.0f;
             } else {
                 state->gameOver = true;
+                state->gameOverReason = GAME_OVER_TIME;
             }
         }
     }
 
     state->chronosDangerous =
         !state->gameOver &&
+        !state->victory &&
         state->timeRemaining > 0.0f &&
         state->timeRemaining <= 15.0f;
 
-    updateChronos(state->chronos, deltaTime, state->chronosDangerous);
+    if (!state->victory) {
+        updateChronos(state->chronos, deltaTime, state->chronosDangerous);
+    }
 
     float playerMouseAngle = std::atan2(
         mousePos.y - state->player.y,
         mousePos.x - state->player.x
     );
 
-    if (!state->gameOver) {
+    if (!state->gameOver && !state->victory) {
+        state->chronosHitCooldown = std::max(0.0f, state->chronosHitCooldown - deltaTime);
+        state->playerHitFlash = std::max(0.0f, state->playerHitFlash - deltaTime);
+        state->playerShakeTimer = std::max(0.0f, state->playerShakeTimer - deltaTime);
+
         float accelerateX = (float)(IsKeyDown(KEY_D) - IsKeyDown(KEY_A));
         float accelerateY = (float)(IsKeyDown(KEY_S) - IsKeyDown(KEY_W));
 
@@ -374,15 +433,101 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
             PLAYER_ACCELERATION * deltaTime
         );
 
-        state->player.x += state->player.velx * deltaTime;
-        state->player.y += state->player.vely * deltaTime;
+        const float halfPlayer = PLAYER_RECT_SIZE * 0.5f;
+        const float nextX = std::clamp(
+            state->player.x + state->player.velx * deltaTime,
+            halfPlayer, SCREEN_WIDTH - halfPlayer
+        );
+        const float nextY = std::clamp(
+            state->player.y + state->player.vely * deltaTime,
+            halfPlayer, SCREEN_HEIGHT - halfPlayer
+        );
+
+        const Rectangle nextXBounds = {
+            nextX - halfPlayer, state->player.y - halfPlayer,
+            PLAYER_RECT_SIZE, PLAYER_RECT_SIZE
+        };
+        if (!CheckCollisionRecs(nextXBounds, temporaryWall)) {
+            state->player.x = nextX;
+        } else {
+            state->player.velx = 0.0f;
+        }
+
+        const Rectangle nextYBounds = {
+            state->player.x - halfPlayer, nextY - halfPlayer,
+            PLAYER_RECT_SIZE, PLAYER_RECT_SIZE
+        };
+        if (!CheckCollisionRecs(nextYBounds, temporaryWall)) {
+            state->player.y = nextY;
+        } else {
+            state->player.vely = 0.0f;
+        }
+    }
+
+    if (!state->gameOver && !state->victory && state->chronosHitCooldown <= 0.0f) {
+        const float dx = state->player.x - state->chronos.position.x;
+        const float dy = state->player.y - state->chronos.position.y;
+        const float distance = std::sqrt(dx * dx + dy * dy);
+        const Texture2D chronosTexture = state->assets.chronosSprite.getCurrentTexture();
+        const float chronosRadius =
+            std::max(chronosTexture.width, chronosTexture.height) * 0.5f;
+        const Rectangle playerBounds = {
+            state->player.x - PLAYER_RECT_SIZE * 0.5f,
+            state->player.y - PLAYER_RECT_SIZE * 0.5f,
+            PLAYER_RECT_SIZE,
+            PLAYER_RECT_SIZE
+        };
+
+        if (CheckCollisionCircleRec(state->chronos.position, chronosRadius, playerBounds)) {
+            state->chronosHitCooldown = 0.5f;
+
+            if (state->chronosDangerous) {
+                state->gameOver = true;
+                state->gameOverReason = GAME_OVER_CAUGHT;
+            } else {
+                const float safeDistance = std::max(distance, 0.001f);
+                const float pushX = dx / safeDistance;
+                const float pushY = dy / safeDistance;
+                state->player.x += pushX * 30.0f;
+                state->player.y += pushY * 30.0f;
+                state->player.velx = pushX * 80.0f;
+                state->player.vely = pushY * 80.0f;
+                state->player.x = std::clamp(state->player.x, 8.0f, SCREEN_WIDTH - 8.0f);
+                state->player.y = std::clamp(state->player.y, 8.0f, SCREEN_HEIGHT - 8.0f);
+                state->playerHitFlash = 0.25f;
+                state->playerShakeTimer = 0.35f;
+            }
+        }
+    }
+
+    if (!state->gameOver && !state->victory &&
+        !state->testItem.collected && IsKeyPressed(KEY_E)) {
+        const float dx = state->player.x - state->testItem.position.x;
+        const float dy = state->player.y - state->testItem.position.y;
+        const float distance = std::sqrt(dx * dx + dy * dy);
+
+        if (distance <= 16.0f) {
+            state->testItem.collected = true;
+        }
+    }
+
+    state->testExit.unlocked = state->testItem.collected;
+
+    if (state->testExit.unlocked && IsKeyPressed(KEY_E)) {
+        const float dx = state->player.x - state->testExit.position.x;
+        const float dy = state->player.y - state->testExit.position.y;
+        const float distance = std::sqrt(dx * dx + dy * dy);
+
+        if (distance <= 18.0f) {
+            state->victory = true;
+        }
     }
 
     ClearBackground(Color{20, 20, 24, 255});
     state->islandMap.Draw({0.0f, 0.0f}, false);
 
     // Temporary occlusion-test wall; replace with the map's obstacle data later.
-    DrawRectangle(140, 58, 4, 108, DARKGRAY);
+    DrawRectangleRec(temporaryWall, DARKGRAY);
 
     Color chronosColor = DARKGRAY;
 
@@ -408,8 +553,8 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
             (float)state->assets.chronosSprite.getCurrentTexture().height
         },
         {
-            state->chronos.position.x - state->assets.chronosSprite.getCurrentTexture().width / 2,
-            state->chronos.position.y - state->assets.chronosSprite.getCurrentTexture().height / 2,
+            state->chronos.position.x,
+            state->chronos.position.y,
             (float)state->assets.chronosSprite.getCurrentTexture().width,
             (float)state->assets.chronosSprite.getCurrentTexture().height
         },
@@ -421,12 +566,21 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         {180, 180, 180, 255}
     );
 
+    const float shakeX = state->playerShakeTimer > 0.0f
+        ? std::sin(GetTime() * 70.0f) * 3.0f
+        : 0.0f;
+    const float shakeY = state->playerShakeTimer > 0.0f
+        ? std::cos(GetTime() * 85.0f) * 2.0f
+        : 0.0f;
+
     DrawTexturePro(
         state->assets.players[state->selectedCharacter],
         {0, 0, (float)PLAYER_RECT_SIZE, (float)PLAYER_RECT_SIZE},
-        {state->player.x, state->player.y, (float)PLAYER_RECT_SIZE, (float)PLAYER_RECT_SIZE},
+        {state->player.x + shakeX, state->player.y + shakeY,
+            (float)PLAYER_RECT_SIZE, (float)PLAYER_RECT_SIZE},
         {PLAYER_RECT_SIZE / 2.0f, PLAYER_RECT_SIZE / 2.0f},
-        playerMouseAngle * RAD2DEG, {255, 255, 255, 255}
+        playerMouseAngle * RAD2DEG,
+        state->playerHitFlash > 0.0f ? ORANGE : WHITE
     );
 
     const std::vector<LightSource> lightSources{
@@ -439,6 +593,75 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
     state->lightingMap.calcAndDrawLights(
         lightSources, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT
     );
+    DrawText(
+        state->testItem.collected ? "Item: 1/1" : "Item: 0/1",
+        8,
+        8,
+        10,
+        RAYWHITE
+    );
+
+    if (!state->testItem.collected) {
+        DrawRectangle(
+            (int)state->testItem.position.x - 4,
+            (int)state->testItem.position.y - 4,
+            8,
+            8,
+            GOLD
+        );
+    }
+
+    DrawRectangle(
+        (int)state->testExit.position.x - 6,
+        (int)state->testExit.position.y - 6,
+        12,
+        12,
+        state->testExit.unlocked ? GREEN : DARKGRAY
+    );
+
+    if (state->victory) {
+        DrawRectangle(30, 82, SCREEN_WIDTH - 60, 76, Color{10, 30, 18, 235});
+        DrawRectangleLines(30, 82, SCREEN_WIDTH - 60, 76, GREEN);
+        DrawText("ESCAPED!", 78, 96, 22, GREEN);
+        DrawText("You escaped the island.", 55, 126, 10, RAYWHITE);
+    } else if (state->gameOver) {
+        DrawRectangle(30, 82, SCREEN_WIDTH - 60, 76, Color{35, 10, 12, 235});
+        DrawRectangleLines(30, 82, SCREEN_WIDTH - 60, 76, RED);
+        if (state->gameOverReason == GAME_OVER_CAUGHT) {
+            DrawText("CAUGHT!", 80, 96, 22, RED);
+            DrawText("Chronos caught you.", 63, 124, 10, RAYWHITE);
+        } else {
+            DrawText("TIME OVER", 76, 96, 22, RED);
+            DrawText("You failed to escape.", 58, 124, 10, RAYWHITE);
+        }
+        DrawText("Press R to restart", 66, 140, 9, LIGHTGRAY);
+    }
+
+    int secondsLeft = static_cast<int>(std::ceil(state->timeRemaining));
+    std::string timerText = "Time: " + std::to_string(secondsLeft);
+    
+    bool isUrgent = (state->timeRemaining <= 5.0f && state->timeRemaining > 0.0f);
+    
+    int fontSize = isUrgent ? 14 : 10;          
+    Color textColor = isUrgent ? RED : RAYWHITE; 
+    
+    int textWidth = MeasureText(timerText.c_str(), fontSize);
+    int posX = (SCREEN_WIDTH - textWidth) / 2;
+    int posY = 6;
+    
+    if (isUrgent) {
+        float t = (float)GetTime();
+        posX += (int)(std::sin(t * 50.0f) * 3.0f);
+        posY += (int)(std::cos(t * 45.0f) * 2.0f);
+
+        DrawText(timerText.c_str(), posX - 2, posY, fontSize, SKYBLUE);
+        DrawText(timerText.c_str(), posX + 2, posY, fontSize, Color{255, 50, 50, 180});
+    }
+    
+    DrawText(timerText.c_str(), posX, posY, fontSize, textColor);
+
+    std::string loopText = "Loop: " + std::to_string(state->currentLoop) + "/3";
+    DrawText(loopText.c_str(), 8, 22, 10, RAYWHITE);
 }
 
 void mainLoop(void* data) {
@@ -563,11 +786,15 @@ int main(int argc, char** argv) {
 
     GameState state = {};
     state.player = {SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f};
-    state.currentScreen = SCREEN_MENU;
+    state.testItem.position = {80.0f, 80.0f};
+    state.testItem.collected = false;
+    state.currentScreen = SCREEN_SELECT;
     state.selectedCharacter = 0;
     state.selectAnim = 0.0f;
     state.assets = loadAssets();
-	state.currentScreen = SCREEN_MENU;
+    state.currentScreen = SCREEN_MENU;
+    state.testExit.position = {200.0f, 80.0f};
+    state.testExit.unlocked = false;
 
     state.islandMap = TileMap(15, 15, 16, 16);
     state.islandMap.LoadTileset(

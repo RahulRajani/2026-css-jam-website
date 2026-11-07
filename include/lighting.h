@@ -32,7 +32,7 @@ struct LightingMap {
 		const std::vector<LightSource>& sources,
 		int scrX, int scrY, int scrWid, int scrHeight
 	) const {
-		constexpr int rayCount = 128;
+		constexpr int rayCount = 512;
 		constexpr int lightBands = 8;
 		constexpr float rayStep = 0.5f;
 		const Color lightColor{246, 154, 84, 18};
@@ -59,7 +59,13 @@ struct LightingMap {
 
 					const bool outsideMap = worldX < 0 || worldX >= width || worldY < 0 || worldY >= height;
 					const bool outsideView = screenX < 0 || screenX >= scrWid || screenY < 0 || screenY >= scrHeight;
-					const bool blocked = outsideMap || outsideView || obstacles[worldY][worldX] != 0;
+
+					if (outsideMap || outsideView) {
+						distance = (float)source.radius;
+						break;
+					}
+
+					const bool blocked = obstacles[worldY][worldX] != 0;
 
 					if (blocked) {
 						distance = sample;
