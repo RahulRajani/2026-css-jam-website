@@ -519,6 +519,29 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         DrawText("You failed to escape.", 58, 124, 10, RAYWHITE);
         DrawText("Press R to restart", 66, 140, 9, LIGHTGRAY);
     }
+
+    int secondsLeft = static_cast<int>(std::ceil(state->timeRemaining));
+    std::string timerText = "Time: " + std::to_string(secondsLeft);
+    
+    bool isUrgent = (state->timeRemaining <= 5.0f && state->timeRemaining > 0.0f);
+    
+    int fontSize = isUrgent ? 14 : 10;          
+    Color textColor = isUrgent ? RED : RAYWHITE; 
+    
+    int textWidth = MeasureText(timerText.c_str(), fontSize);
+    int posX = (SCREEN_WIDTH - textWidth) / 2;
+    int posY = 6;
+    
+    if (isUrgent) {
+        float t = (float)GetTime();
+        posX += (int)(std::sin(t * 50.0f) * 3.0f);
+        posY += (int)(std::cos(t * 45.0f) * 2.0f);
+
+        DrawText(timerText.c_str(), posX - 2, posY, fontSize, SKYBLUE);
+        DrawText(timerText.c_str(), posX + 2, posY, fontSize, Color{255, 50, 50, 180});
+    }
+    
+    DrawText(timerText.c_str(), posX, posY, fontSize, textColor);
 }
 
 void mainLoop(void* data) {
