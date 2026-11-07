@@ -21,6 +21,19 @@ struct GameState {
 	Player player;
 };
 
+//This should be the main game loop.
+
+
+int start=1;
+int loadGame=0;
+
+while (start==1){
+	std::cout<<""
+
+
+}
+
+
 // main update loop - add stuff here
 void mainLoop(void* data) {
 	GameState* state = (GameState*)data;
