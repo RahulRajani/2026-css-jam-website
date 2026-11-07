@@ -22,16 +22,18 @@ struct Player {
 
 struct GameAssets {
 	Shader crtShader;
-
+	
 	Texture players[2];
 };
 
+
+
+
 struct GameState {
 	Player player;
-
 	GameAssets assets;
-
 	RenderTexture2D screenTexture;
+	int gameControl;
 };
 
 Vector2 getGameMousePos() {
@@ -61,8 +63,89 @@ Vector2 getGameMousePos() {
 	};
 }
 
+//UI Functions:
+void drawTitle(const char* title){
+	int titleFontSize=40;
+	int titleWidth=MeasureText(title,titleFontSize);
+	DrawText(title,(SCREEN_WIDTH-titleWidth)/2,20,titleFontSize,DARKGRAY);
+
+}
+
+void draw_button(const char* title, Rectangle button,bool overHover){
+	DrawRectangleRec(button, overHover ? LIGHTGRAY : WHITE);
+    DrawRectangleLines((int)button.x, (int)button.y, (int)button.width, (int)button.height, DARKGRAY);
+    int playWidth = MeasureText(title, 20);
+    DrawText(title, (int)(button.x + (button.width - playWidth) / 2), (int)(button.y + 15), 20, DARKGRAY);
+
+}
+
+
+
+void menuLoop(void *data){
+	GameState* state=(GameState *) data;
+	float deltaTime=GetFrameTime();
+
+	//Calculates window dimensions and scaling offsets.
+	int scrWidth=GetScreenWidth();
+	int scrHeight=GetScreenHeight();
+	int scale=std::min(scrWidth/SCREEN_WIDTH,scrHeight/SCREEN_HEIGHT);
+	int scrBufferWidth=SCREEN_WIDTH*scale;
+	int scrBufferHeight=SCREEN_HEIGHT*scale;
+	float offsetX=(scrWidth-scrBufferWidth)/2.0f;
+	float offsetY=(scrHeight-scrBufferHeight)/2.0f;
+
+
+	Vector2 mousePos=GetMousePosition();
+	Vector2 vMouse={
+		(mousePos.x-offsetX)/scale,
+		(mousePos.y-offsetY)/scale
+	};
+
+	//Bounding boxes.
+	Rectangle playButton = { (SCREEN_WIDTH - 200) / 2.0f, (SCREEN_HEIGHT / 2.0f) - 40.0f, 200.0f, 50.0f };
+    Rectangle creditsButton = { (SCREEN_WIDTH - 200) / 2.0f, (SCREEN_HEIGHT / 2.0f) + 20.0f, 200.0f, 50.0f };
+
+	bool playHovered = CheckCollisionPointRec(vMouse, playButton);
+    bool creditsHovered = CheckCollisionPointRec(vMouse, creditsButton);
+
+    if (playHovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        state->gameControl=1;
+    }
+	if (creditsHovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        // Trigger transition to credits state
+    }
+
+	drawTitle("Game Name");
+	draw_button("Play",playButton,playHovered);
+	draw_button("Credits",creditsButton,creditsHovered);
+
+	EndTextureMode();
+
+	//Render texture to window.
+	BeginDrawing();
+	ClearBackground(WHITE);
+
+	float crtRes[2] = {(float)scrBufferWidth, (float)scrBufferHeight};
+	SetShaderValue(state->assets.crtShader, GetShaderLocation(state->assets.crtShader, "resolution"), crtRes, SHADER_UNIFORM_VEC2);
+
+	BeginShaderMode(state->assets.crtShader);
+    DrawTexturePro(
+        state->screenTexture.texture,
+        (Rectangle){0, 0, (float)state->screenTexture.texture.width, (float)-state->screenTexture.texture.height},
+        (Rectangle){ offsetX, offsetY, (float)scrBufferWidth, (float)scrBufferHeight },
+        (Vector2){0.0f, 0.0f}, 0.0f, BLACK
+    );
+    EndShaderMode();
+
+    DrawFPS(10, 10);
+    EndDrawing();
+
+
+}
+
 // main update loop - add stuff here
 void mainLoop(void* data) {
+	
 	GameState* state = (GameState*)data;
 
 	float deltaTime = GetFrameTime();
@@ -87,9 +170,15 @@ void mainLoop(void* data) {
 	state->player.x += state->player.velx * deltaTime;
 	state->player.y += state->player.vely * deltaTime;
 
+
+	
 	BeginTextureMode(state->screenTexture);
 		ClearBackground(Color{255, 255, 255, 255});
+		if (state->gameControl==0){
+			menuLoop(data);
 
+		}
+        
 		DrawTexturePro(
 			state->assets.players[0],
 			{0, 0, PLAYER_RECT_SIZE, PLAYER_RECT_SIZE},
@@ -100,31 +189,28 @@ void mainLoop(void* data) {
 	EndTextureMode();
 
 	BeginDrawing();
-		ClearBackground(BLACK);
+	ClearBackground(BLACK);
 
-		int scrWidth = GetScreenWidth();
-		int scrHeight = GetScreenHeight();
-
-		int scale = std::min(scrWidth / SCREEN_WIDTH, scrHeight / SCREEN_HEIGHT);
-
-		int scrBufferWidth = SCREEN_WIDTH * scale;
-		int scrBufferHeight = SCREEN_HEIGHT * scale;
-
-		float crtRes[2] = {(float)scrBufferWidth, (float)scrBufferHeight};
-		SetShaderValue(state->assets.crtShader, GetShaderLocation(state->assets.crtShader, "resolution"), crtRes, SHADER_UNIFORM_VEC2);
+	int scrWidth = GetScreenWidth();
+	int scrHeight = GetScreenHeight();
+	int scale = std::min(scrWidth / SCREEN_WIDTH, scrHeight / SCREEN_HEIGHT);
+	int scrBufferWidth = SCREEN_WIDTH * scale;
+	int scrBufferHeight = SCREEN_HEIGHT * scale;
+	float crtRes[2] = {(float)scrBufferWidth, (float)scrBufferHeight};
+	SetShaderValue(state->assets.crtShader, GetShaderLocation(state->assets.crtShader, "resolution"), crtRes, SHADER_UNIFORM_VEC2);
 		
-		BeginShaderMode(state->assets.crtShader); {
-			DrawTexturePro(
-				state->screenTexture.texture,
-				(Rectangle){0, 0, (float)state->screenTexture.texture.width, (float)-state->screenTexture.texture.height},
-				(Rectangle){
-					(float)(int)((scrWidth - scrBufferWidth) / 2.0f),
-					(float)(int)((scrHeight - scrBufferHeight) / 2.0f),
-					(float)scrBufferWidth, (float)scrBufferHeight
-				},
-				(Vector2){0.0f, 0.0f}, 0.0f, WHITE
-			);
-		} EndShaderMode();
+	BeginShaderMode(state->assets.crtShader); {
+		DrawTexturePro(
+			state->screenTexture.texture,
+			(Rectangle){0, 0, (float)state->screenTexture.texture.width, (float)-state->screenTexture.texture.height},
+			(Rectangle){
+				(float)(int)((scrWidth - scrBufferWidth) / 2.0f),
+				(float)(int)((scrHeight - scrBufferHeight) / 2.0f),
+				(float)scrBufferWidth, (float)scrBufferHeight
+			},
+			(Vector2){0.0f, 0.0f}, 0.0f, WHITE
+		);
+	} EndShaderMode();
 
 	DrawFPS(10, 10);
 
@@ -164,6 +250,9 @@ void unloadAssets(GameAssets& assets) {
 }
 
 int main(int argc, char** argv) {
+
+
+
 	SetTraceLogLevel(LOG_WARNING);
 	SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 
@@ -171,14 +260,14 @@ int main(int argc, char** argv) {
 
 	GameState state = {}; // create inital state
 	state.player = {SCREEN_WIDTH / 2 - PLAYER_RECT_SIZE / 2, SCREEN_HEIGHT / 2 - PLAYER_RECT_SIZE / 2};
-
 	state.assets = loadAssets();
+	state.gameControl=0;
 
 	state.screenTexture = LoadRenderTexture(SCREEN_WIDTH, SCREEN_HEIGHT);
 	SetTextureWrap(state.screenTexture.texture, TEXTURE_WRAP_CLAMP);
 
 	#ifdef __EMSCRIPTEN__
-	emscripten_set_main_loop_arg(mainLoop, &state, 0, true);
+	emscripten_set_main_loop_arg(mainLoop,&state, 0, true);
 	#else
 	while (!WindowShouldClose()) {
 		mainLoop(&state);
