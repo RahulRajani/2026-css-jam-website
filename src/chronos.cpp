@@ -1,4 +1,4 @@
-#include "../Include/chronos.h"
+#include "chronos.h"
 #include <raymath.h>
 
 void updateChronos(Chronos& chronos, float deltaTime, bool dangerous) {
