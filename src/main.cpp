@@ -8,6 +8,8 @@
 #include <vector>
 #include <cmath>
 
+#include "lighting.h"
+
 #define SCREEN_WIDTH 240
 #define SCREEN_HEIGHT 240
 
@@ -36,6 +38,8 @@ struct GameState {
 	GameAssets assets;
 
 	RenderTexture2D screenTexture;
+
+	LightingMap lightingMap;
 };
 
 Vector2 getGameMousePos() {
@@ -118,19 +122,18 @@ void mainLoop(void* data) {
 			playerMouseAngle * RAD2DEG, {255, 255, 255, 255}
 		);
 
-		for (int x = 0; x < PLAYER_LIGHT_SIZE; x++) {
-			for (int y = 0; y < PLAYER_LIGHT_SIZE; y++) {
-				int plrX = x - PLAYER_LIGHT_SIZE / 2;
-				int plrY = y - PLAYER_LIGHT_SIZE / 2;
-
-				int scrX = state->player.x + plrX;
-				int scrY = state->player.y + plrY;
-				
-				float str = (1.0f - sqrt(plrX * plrX + plrY * plrY) / (PLAYER_LIGHT_SIZE / 2.0f));
-
-				DrawPixel(scrX, scrY, {246, 154, 84, (uint8_t)(255 * 0.5f * str)});
+		std::vector<LightSource> lightSources;
+		lightSources.push_back(
+			LightSource{
+				(int)state->player.x, (int)state->player.y, (int)(PLAYER_LIGHT_SIZE / 2.0f)
 			}
-		}
+		);
+
+		state->lightingMap.calcAndDrawLights(
+			lightSources,
+			0, 0, // change to actual screen world pos
+			SCREEN_WIDTH, SCREEN_HEIGHT
+		);
 	EndTextureMode();
 
 	BeginDrawing();
@@ -212,10 +215,17 @@ int main(int argc, char** argv) {
 	InitAudioDevice();
 
 	GameState state = {}; // create inital state
-	state.player = {SCREEN_WIDTH / 2 - PLAYER_RECT_SIZE / 2, SCREEN_HEIGHT / 2 - PLAYER_RECT_SIZE / 2};
+	state.player = {
+		SCREEN_WIDTH / 2 - PLAYER_RECT_SIZE / 2,
+		SCREEN_HEIGHT / 2 - PLAYER_RECT_SIZE / 2
+	};
+
 	state.carolMode = false;
 
 	state.assets = loadAssets();
+
+	// init lighting map to screen size (will change to map size)
+	state.lightingMap = LightingMap(SCREEN_WIDTH, SCREEN_HEIGHT);
 
 	state.screenTexture = LoadRenderTexture(SCREEN_WIDTH, SCREEN_HEIGHT);
 	SetTextureWrap(state.screenTexture.texture, TEXTURE_WRAP_CLAMP);
