@@ -3,6 +3,7 @@
 #endif
 
 #include <raylib.h>
+#include "chronos.h"
 
 #include <cstdint>
 #include <vector>
@@ -29,6 +30,7 @@ struct GameAssets {
 
 struct GameState {
 	Player player;
+	Chronos chronos;
 	bool carolMode;
 
 	int currentLoop = 1;
@@ -110,6 +112,8 @@ void mainLoop(void* data) {
     state->timeRemaining > 0.0f &&
     state->timeRemaining <= 15.0f;
 
+	updateChronos(state->chronos, deltaTime, state->chronosDangerous);
+
 	Vector2 gameMousePos = getGameMousePos();
 	
 	// player movement
@@ -142,6 +146,19 @@ void mainLoop(void* data) {
 
 	BeginTextureMode(state->screenTexture);
 		ClearBackground(Color{255, 255, 255, 255});
+
+		Color chronosColor = DARKGRAY;
+
+		if (state->chronosDangerous &&
+			static_cast<int>(GetTime() * 4.0) % 2 == 0) {
+			chronosColor = RED;
+		}
+
+		DrawCircleV(
+			state->chronos.position,
+			8.0f,
+			chronosColor
+		);
 
 		DrawTexturePro(
 			state->assets.players[state->carolMode ? 1 : 0],
@@ -187,7 +204,11 @@ void mainLoop(void* data) {
 GameAssets loadAssets() {
 	GameAssets assets;
 
+	#ifdef __EMSCRIPTEN__
 	assets.crtShader = LoadShader(0, "assets/crt.frag");
+	#else
+	assets.crtShader = LoadShader(0, "assets/crt_desktop.frag");
+	#endif
 
 	float crtCurve = 1.2f;
 	float crtVignette = 0.4f;
