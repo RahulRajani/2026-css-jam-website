@@ -1,0 +1,913 @@
+{
+ "meta": {
+  "name": "Pixel Top-down Forest and Village Tileset",
+  "tile_size": 16,
+  "image": "spritesheet.png",
+  "count": 129
+ },
+ "frames": {
+  "grass_1": {
+   "x": 0,
+   "y": 0,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "grass_2": {
+   "x": 16,
+   "y": 0,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "grass_3": {
+   "x": 32,
+   "y": 0,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "grass_dark_1": {
+   "x": 48,
+   "y": 0,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "grass_dark_2": {
+   "x": 64,
+   "y": 0,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "grass_autumn": {
+   "x": 80,
+   "y": 0,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "grass_tall": {
+   "x": 96,
+   "y": 0,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "grass_flowers_white": {
+   "x": 112,
+   "y": 0,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "grass_flowers_yellow": {
+   "x": 128,
+   "y": 0,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "grass_flowers_pink": {
+   "x": 144,
+   "y": 0,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "grass_flowers_blue": {
+   "x": 0,
+   "y": 16,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "dirt_1": {
+   "x": 16,
+   "y": 16,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "dirt_2": {
+   "x": 32,
+   "y": 16,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "dirt_dark": {
+   "x": 48,
+   "y": 16,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "sand": {
+   "x": 64,
+   "y": 16,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "cobble": {
+   "x": 80,
+   "y": 16,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "cobble_mossy": {
+   "x": 96,
+   "y": 16,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "stone_floor": {
+   "x": 112,
+   "y": 16,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "water_1": {
+   "x": 128,
+   "y": 16,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "water_2": {
+   "x": 144,
+   "y": 16,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "water_3": {
+   "x": 0,
+   "y": 32,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "water_shore_n": {
+   "x": 16,
+   "y": 32,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "water_shore_s": {
+   "x": 32,
+   "y": 32,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "water_shore_e": {
+   "x": 48,
+   "y": 32,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "water_shore_w": {
+   "x": 64,
+   "y": 32,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "bridge_h": {
+   "x": 80,
+   "y": 32,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "bridge_v": {
+   "x": 96,
+   "y": 32,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "path_edge_n": {
+   "x": 112,
+   "y": 32,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "path_edge_s": {
+   "x": 128,
+   "y": 32,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "path_edge_e": {
+   "x": 144,
+   "y": 32,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "path_edge_w": {
+   "x": 0,
+   "y": 48,
+   "w": 16,
+   "h": 16,
+   "category": "terrain"
+  },
+  "roof_red": {
+   "x": 16,
+   "y": 48,
+   "w": 16,
+   "h": 16,
+   "category": "village"
+  },
+  "roof_blue": {
+   "x": 32,
+   "y": 48,
+   "w": 16,
+   "h": 16,
+   "category": "village"
+  },
+  "roof_thatch": {
+   "x": 48,
+   "y": 48,
+   "w": 16,
+   "h": 16,
+   "category": "village"
+  },
+  "roof_slate": {
+   "x": 64,
+   "y": 48,
+   "w": 16,
+   "h": 16,
+   "category": "village"
+  },
+  "roof_green": {
+   "x": 80,
+   "y": 48,
+   "w": 16,
+   "h": 16,
+   "category": "village"
+  },
+  "wall_plaster_cream": {
+   "x": 96,
+   "y": 48,
+   "w": 16,
+   "h": 16,
+   "category": "village"
+  },
+  "wall_plaster_white": {
+   "x": 112,
+   "y": 48,
+   "w": 16,
+   "h": 16,
+   "category": "village"
+  },
+  "wall_timber_frame": {
+   "x": 128,
+   "y": 48,
+   "w": 16,
+   "h": 16,
+   "category": "village"
+  },
+  "wall_log": {
+   "x": 144,
+   "y": 48,
+   "w": 16,
+   "h": 16,
+   "category": "village"
+  },
+  "wall_log_dark": {
+   "x": 0,
+   "y": 64,
+   "w": 16,
+   "h": 16,
+   "category": "village"
+  },
+  "wall_brick": {
+   "x": 16,
+   "y": 64,
+   "w": 16,
+   "h": 16,
+   "category": "village"
+  },
+  "wall_stone": {
+   "x": 32,
+   "y": 64,
+   "w": 16,
+   "h": 16,
+   "category": "village"
+  },
+  "wood_floor_h": {
+   "x": 48,
+   "y": 64,
+   "w": 16,
+   "h": 16,
+   "category": "village"
+  },
+  "wood_floor_v": {
+   "x": 64,
+   "y": 64,
+   "w": 16,
+   "h": 16,
+   "category": "village"
+  },
+  "tree_oak": {
+   "x": 80,
+   "y": 64,
+   "w": 16,
+   "h": 16,
+   "category": "trees"
+  },
+  "tree_oak_light": {
+   "x": 96,
+   "y": 64,
+   "w": 16,
+   "h": 16,
+   "category": "trees"
+  },
+  "tree_autumn_orange": {
+   "x": 112,
+   "y": 64,
+   "w": 16,
+   "h": 16,
+   "category": "trees"
+  },
+  "tree_autumn_red": {
+   "x": 128,
+   "y": 64,
+   "w": 16,
+   "h": 16,
+   "category": "trees"
+  },
+  "tree_cherry": {
+   "x": 144,
+   "y": 64,
+   "w": 16,
+   "h": 16,
+   "category": "trees"
+  },
+  "tree_pine": {
+   "x": 0,
+   "y": 80,
+   "w": 16,
+   "h": 16,
+   "category": "trees"
+  },
+  "tree_pine_dark": {
+   "x": 16,
+   "y": 80,
+   "w": 16,
+   "h": 16,
+   "category": "trees"
+  },
+  "tree_pine_snow": {
+   "x": 32,
+   "y": 80,
+   "w": 16,
+   "h": 16,
+   "category": "trees"
+  },
+  "tree_birch": {
+   "x": 48,
+   "y": 80,
+   "w": 16,
+   "h": 16,
+   "category": "trees"
+  },
+  "tree_dead": {
+   "x": 64,
+   "y": 80,
+   "w": 16,
+   "h": 16,
+   "category": "trees"
+  },
+  "tree_palm": {
+   "x": 80,
+   "y": 80,
+   "w": 16,
+   "h": 16,
+   "category": "trees"
+  },
+  "bush_green": {
+   "x": 96,
+   "y": 80,
+   "w": 16,
+   "h": 16,
+   "category": "plants"
+  },
+  "bush_dark": {
+   "x": 112,
+   "y": 80,
+   "w": 16,
+   "h": 16,
+   "category": "plants"
+  },
+  "bush_berry_red": {
+   "x": 128,
+   "y": 80,
+   "w": 16,
+   "h": 16,
+   "category": "plants"
+  },
+  "bush_berry_blue": {
+   "x": 144,
+   "y": 80,
+   "w": 16,
+   "h": 16,
+   "category": "plants"
+  },
+  "bush_flowering": {
+   "x": 0,
+   "y": 96,
+   "w": 16,
+   "h": 16,
+   "category": "plants"
+  },
+  "fern": {
+   "x": 16,
+   "y": 96,
+   "w": 16,
+   "h": 16,
+   "category": "plants"
+  },
+  "flower_red": {
+   "x": 32,
+   "y": 96,
+   "w": 16,
+   "h": 16,
+   "category": "plants"
+  },
+  "flower_blue": {
+   "x": 48,
+   "y": 96,
+   "w": 16,
+   "h": 16,
+   "category": "plants"
+  },
+  "flower_yellow": {
+   "x": 64,
+   "y": 96,
+   "w": 16,
+   "h": 16,
+   "category": "plants"
+  },
+  "flower_pink": {
+   "x": 80,
+   "y": 96,
+   "w": 16,
+   "h": 16,
+   "category": "plants"
+  },
+  "sunflower": {
+   "x": 96,
+   "y": 96,
+   "w": 16,
+   "h": 16,
+   "category": "plants"
+  },
+  "mushroom_red": {
+   "x": 112,
+   "y": 96,
+   "w": 16,
+   "h": 16,
+   "category": "plants"
+  },
+  "mushroom_brown": {
+   "x": 128,
+   "y": 96,
+   "w": 16,
+   "h": 16,
+   "category": "plants"
+  },
+  "mushroom_purple": {
+   "x": 144,
+   "y": 96,
+   "w": 16,
+   "h": 16,
+   "category": "plants"
+  },
+  "reeds": {
+   "x": 0,
+   "y": 112,
+   "w": 16,
+   "h": 16,
+   "category": "plants"
+  },
+  "lily_pad": {
+   "x": 16,
+   "y": 112,
+   "w": 16,
+   "h": 16,
+   "category": "plants"
+  },
+  "rock_grey": {
+   "x": 32,
+   "y": 112,
+   "w": 16,
+   "h": 16,
+   "category": "nature"
+  },
+  "rock_mossy": {
+   "x": 48,
+   "y": 112,
+   "w": 16,
+   "h": 16,
+   "category": "nature"
+  },
+  "rock_brown": {
+   "x": 64,
+   "y": 112,
+   "w": 16,
+   "h": 16,
+   "category": "nature"
+  },
+  "boulder": {
+   "x": 80,
+   "y": 112,
+   "w": 16,
+   "h": 16,
+   "category": "nature"
+  },
+  "tree_stump": {
+   "x": 96,
+   "y": 112,
+   "w": 16,
+   "h": 16,
+   "category": "nature"
+  },
+  "fallen_log": {
+   "x": 112,
+   "y": 112,
+   "w": 16,
+   "h": 16,
+   "category": "nature"
+  },
+  "log_pile": {
+   "x": 128,
+   "y": 112,
+   "w": 16,
+   "h": 16,
+   "category": "nature"
+  },
+  "fence_h": {
+   "x": 144,
+   "y": 112,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "fence_v": {
+   "x": 0,
+   "y": 128,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "fence_post": {
+   "x": 16,
+   "y": 128,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "fence_gate": {
+   "x": 32,
+   "y": 128,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "stone_wall": {
+   "x": 48,
+   "y": 128,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "well": {
+   "x": 64,
+   "y": 128,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "signpost": {
+   "x": 80,
+   "y": 128,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "direction_sign": {
+   "x": 96,
+   "y": 128,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "crate": {
+   "x": 112,
+   "y": 128,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "barrel": {
+   "x": 128,
+   "y": 128,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "grain_sack": {
+   "x": 144,
+   "y": 128,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "haystack": {
+   "x": 0,
+   "y": 144,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "hand_cart": {
+   "x": 16,
+   "y": 144,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "lamp_post": {
+   "x": 32,
+   "y": 144,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "lantern": {
+   "x": 48,
+   "y": 144,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "campfire": {
+   "x": 64,
+   "y": 144,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "tent_red": {
+   "x": 80,
+   "y": 144,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "tent_green": {
+   "x": 96,
+   "y": 144,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "bench": {
+   "x": 112,
+   "y": 144,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "market_stall_red": {
+   "x": 128,
+   "y": 144,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "market_stall_blue": {
+   "x": 144,
+   "y": 144,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "mailbox": {
+   "x": 0,
+   "y": 160,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "gravestone": {
+   "x": 16,
+   "y": 160,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "scarecrow": {
+   "x": 32,
+   "y": 160,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "beehive": {
+   "x": 48,
+   "y": 160,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "treasure_chest": {
+   "x": 64,
+   "y": 160,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "door_wood": {
+   "x": 80,
+   "y": 160,
+   "w": 16,
+   "h": 16,
+   "category": "village"
+  },
+  "door_red": {
+   "x": 96,
+   "y": 160,
+   "w": 16,
+   "h": 16,
+   "category": "village"
+  },
+  "door_blue": {
+   "x": 112,
+   "y": 160,
+   "w": 16,
+   "h": 16,
+   "category": "village"
+  },
+  "window": {
+   "x": 128,
+   "y": 160,
+   "w": 16,
+   "h": 16,
+   "category": "village"
+  },
+  "window_shutters": {
+   "x": 144,
+   "y": 160,
+   "w": 16,
+   "h": 16,
+   "category": "village"
+  },
+  "chimney": {
+   "x": 0,
+   "y": 176,
+   "w": 16,
+   "h": 16,
+   "category": "village"
+  },
+  "stone_steps": {
+   "x": 16,
+   "y": 176,
+   "w": 16,
+   "h": 16,
+   "category": "village"
+  },
+  "flag_red": {
+   "x": 32,
+   "y": 176,
+   "w": 16,
+   "h": 16,
+   "category": "village"
+  },
+  "flag_blue": {
+   "x": 48,
+   "y": 176,
+   "w": 16,
+   "h": 16,
+   "category": "village"
+  },
+  "villager_farmer": {
+   "x": 64,
+   "y": 176,
+   "w": 16,
+   "h": 16,
+   "category": "characters"
+  },
+  "villager_woman": {
+   "x": 80,
+   "y": 176,
+   "w": 16,
+   "h": 16,
+   "category": "characters"
+  },
+  "villager_elder": {
+   "x": 96,
+   "y": 176,
+   "w": 16,
+   "h": 16,
+   "category": "characters"
+  },
+  "merchant": {
+   "x": 112,
+   "y": 176,
+   "w": 16,
+   "h": 16,
+   "category": "characters"
+  },
+  "hunter": {
+   "x": 128,
+   "y": 176,
+   "w": 16,
+   "h": 16,
+   "category": "characters"
+  },
+  "guard": {
+   "x": 144,
+   "y": 176,
+   "w": 16,
+   "h": 16,
+   "category": "characters"
+  },
+  "dog": {
+   "x": 0,
+   "y": 192,
+   "w": 16,
+   "h": 16,
+   "category": "animals"
+  },
+  "cat": {
+   "x": 16,
+   "y": 192,
+   "w": 16,
+   "h": 16,
+   "category": "animals"
+  },
+  "deer": {
+   "x": 32,
+   "y": 192,
+   "w": 16,
+   "h": 16,
+   "category": "animals"
+  },
+  "rabbit": {
+   "x": 48,
+   "y": 192,
+   "w": 16,
+   "h": 16,
+   "category": "animals"
+  },
+  "fox": {
+   "x": 64,
+   "y": 192,
+   "w": 16,
+   "h": 16,
+   "category": "animals"
+  },
+  "chicken": {
+   "x": 80,
+   "y": 192,
+   "w": 16,
+   "h": 16,
+   "category": "animals"
+  },
+  "cow": {
+   "x": 96,
+   "y": 192,
+   "w": 16,
+   "h": 16,
+   "category": "animals"
+  },
+  "sheep": {
+   "x": 112,
+   "y": 192,
+   "w": 16,
+   "h": 16,
+   "category": "animals"
+  },
+  "pig": {
+   "x": 128,
+   "y": 192,
+   "w": 16,
+   "h": 16,
+   "category": "animals"
+  }
+ }
+}

@@ -1,0 +1,895 @@
+{
+ "pack": "Free Pixel Portals & Runes",
+ "version": "1.0",
+ "fps": 12,
+ "sheets": [
+  {
+   "effect": "Arcane Portal",
+   "theme": "arcane",
+   "animation": "open",
+   "file": "effects/01_arcane_portal/32x32/arcane_portal_32x32_open_strip.png",
+   "frame_w": 32,
+   "frame_h": 32,
+   "frames": 10,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Arcane Portal",
+   "theme": "arcane",
+   "animation": "idle",
+   "file": "effects/01_arcane_portal/32x32/arcane_portal_32x32_idle_strip.png",
+   "frame_w": 32,
+   "frame_h": 32,
+   "frames": 12,
+   "fps": 12,
+   "loop": true
+  },
+  {
+   "effect": "Arcane Portal",
+   "theme": "arcane",
+   "animation": "close",
+   "file": "effects/01_arcane_portal/32x32/arcane_portal_32x32_close_strip.png",
+   "frame_w": 32,
+   "frame_h": 32,
+   "frames": 8,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Arcane Portal",
+   "theme": "arcane",
+   "animation": "all",
+   "file": "effects/01_arcane_portal/32x32/arcane_portal_32x32_sheet.png",
+   "frame_w": 32,
+   "frame_h": 32,
+   "rows": [
+    "open",
+    "idle",
+    "close"
+   ],
+   "frames": [
+    10,
+    12,
+    8
+   ],
+   "fps": 12
+  },
+  {
+   "effect": "Arcane Portal",
+   "theme": "arcane",
+   "animation": "open",
+   "file": "effects/01_arcane_portal/64x64/arcane_portal_64x64_open_strip.png",
+   "frame_w": 64,
+   "frame_h": 64,
+   "frames": 10,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Arcane Portal",
+   "theme": "arcane",
+   "animation": "idle",
+   "file": "effects/01_arcane_portal/64x64/arcane_portal_64x64_idle_strip.png",
+   "frame_w": 64,
+   "frame_h": 64,
+   "frames": 12,
+   "fps": 12,
+   "loop": true
+  },
+  {
+   "effect": "Arcane Portal",
+   "theme": "arcane",
+   "animation": "close",
+   "file": "effects/01_arcane_portal/64x64/arcane_portal_64x64_close_strip.png",
+   "frame_w": 64,
+   "frame_h": 64,
+   "frames": 8,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Arcane Portal",
+   "theme": "arcane",
+   "animation": "all",
+   "file": "effects/01_arcane_portal/64x64/arcane_portal_64x64_sheet.png",
+   "frame_w": 64,
+   "frame_h": 64,
+   "rows": [
+    "open",
+    "idle",
+    "close"
+   ],
+   "frames": [
+    10,
+    12,
+    8
+   ],
+   "fps": 12
+  },
+  {
+   "effect": "Arcane Portal",
+   "theme": "arcane",
+   "animation": "open",
+   "file": "effects/01_arcane_portal/128x128/arcane_portal_128x128_open_strip.png",
+   "frame_w": 128,
+   "frame_h": 128,
+   "frames": 10,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Arcane Portal",
+   "theme": "arcane",
+   "animation": "idle",
+   "file": "effects/01_arcane_portal/128x128/arcane_portal_128x128_idle_strip.png",
+   "frame_w": 128,
+   "frame_h": 128,
+   "frames": 12,
+   "fps": 12,
+   "loop": true
+  },
+  {
+   "effect": "Arcane Portal",
+   "theme": "arcane",
+   "animation": "close",
+   "file": "effects/01_arcane_portal/128x128/arcane_portal_128x128_close_strip.png",
+   "frame_w": 128,
+   "frame_h": 128,
+   "frames": 8,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Arcane Portal",
+   "theme": "arcane",
+   "animation": "all",
+   "file": "effects/01_arcane_portal/128x128/arcane_portal_128x128_sheet.png",
+   "frame_w": 128,
+   "frame_h": 128,
+   "rows": [
+    "open",
+    "idle",
+    "close"
+   ],
+   "frames": [
+    10,
+    12,
+    8
+   ],
+   "fps": 12
+  },
+  {
+   "effect": "Verdant Portal",
+   "theme": "verdant",
+   "animation": "open",
+   "file": "effects/02_verdant_portal/32x32/verdant_portal_32x32_open_strip.png",
+   "frame_w": 32,
+   "frame_h": 32,
+   "frames": 10,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Verdant Portal",
+   "theme": "verdant",
+   "animation": "idle",
+   "file": "effects/02_verdant_portal/32x32/verdant_portal_32x32_idle_strip.png",
+   "frame_w": 32,
+   "frame_h": 32,
+   "frames": 12,
+   "fps": 12,
+   "loop": true
+  },
+  {
+   "effect": "Verdant Portal",
+   "theme": "verdant",
+   "animation": "close",
+   "file": "effects/02_verdant_portal/32x32/verdant_portal_32x32_close_strip.png",
+   "frame_w": 32,
+   "frame_h": 32,
+   "frames": 8,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Verdant Portal",
+   "theme": "verdant",
+   "animation": "all",
+   "file": "effects/02_verdant_portal/32x32/verdant_portal_32x32_sheet.png",
+   "frame_w": 32,
+   "frame_h": 32,
+   "rows": [
+    "open",
+    "idle",
+    "close"
+   ],
+   "frames": [
+    10,
+    12,
+    8
+   ],
+   "fps": 12
+  },
+  {
+   "effect": "Verdant Portal",
+   "theme": "verdant",
+   "animation": "open",
+   "file": "effects/02_verdant_portal/64x64/verdant_portal_64x64_open_strip.png",
+   "frame_w": 64,
+   "frame_h": 64,
+   "frames": 10,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Verdant Portal",
+   "theme": "verdant",
+   "animation": "idle",
+   "file": "effects/02_verdant_portal/64x64/verdant_portal_64x64_idle_strip.png",
+   "frame_w": 64,
+   "frame_h": 64,
+   "frames": 12,
+   "fps": 12,
+   "loop": true
+  },
+  {
+   "effect": "Verdant Portal",
+   "theme": "verdant",
+   "animation": "close",
+   "file": "effects/02_verdant_portal/64x64/verdant_portal_64x64_close_strip.png",
+   "frame_w": 64,
+   "frame_h": 64,
+   "frames": 8,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Verdant Portal",
+   "theme": "verdant",
+   "animation": "all",
+   "file": "effects/02_verdant_portal/64x64/verdant_portal_64x64_sheet.png",
+   "frame_w": 64,
+   "frame_h": 64,
+   "rows": [
+    "open",
+    "idle",
+    "close"
+   ],
+   "frames": [
+    10,
+    12,
+    8
+   ],
+   "fps": 12
+  },
+  {
+   "effect": "Verdant Portal",
+   "theme": "verdant",
+   "animation": "open",
+   "file": "effects/02_verdant_portal/128x128/verdant_portal_128x128_open_strip.png",
+   "frame_w": 128,
+   "frame_h": 128,
+   "frames": 10,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Verdant Portal",
+   "theme": "verdant",
+   "animation": "idle",
+   "file": "effects/02_verdant_portal/128x128/verdant_portal_128x128_idle_strip.png",
+   "frame_w": 128,
+   "frame_h": 128,
+   "frames": 12,
+   "fps": 12,
+   "loop": true
+  },
+  {
+   "effect": "Verdant Portal",
+   "theme": "verdant",
+   "animation": "close",
+   "file": "effects/02_verdant_portal/128x128/verdant_portal_128x128_close_strip.png",
+   "frame_w": 128,
+   "frame_h": 128,
+   "frames": 8,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Verdant Portal",
+   "theme": "verdant",
+   "animation": "all",
+   "file": "effects/02_verdant_portal/128x128/verdant_portal_128x128_sheet.png",
+   "frame_w": 128,
+   "frame_h": 128,
+   "rows": [
+    "open",
+    "idle",
+    "close"
+   ],
+   "frames": [
+    10,
+    12,
+    8
+   ],
+   "fps": 12
+  },
+  {
+   "effect": "Ember Portal",
+   "theme": "ember",
+   "animation": "open",
+   "file": "effects/03_ember_portal/32x32/ember_portal_32x32_open_strip.png",
+   "frame_w": 32,
+   "frame_h": 32,
+   "frames": 10,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Ember Portal",
+   "theme": "ember",
+   "animation": "idle",
+   "file": "effects/03_ember_portal/32x32/ember_portal_32x32_idle_strip.png",
+   "frame_w": 32,
+   "frame_h": 32,
+   "frames": 12,
+   "fps": 12,
+   "loop": true
+  },
+  {
+   "effect": "Ember Portal",
+   "theme": "ember",
+   "animation": "close",
+   "file": "effects/03_ember_portal/32x32/ember_portal_32x32_close_strip.png",
+   "frame_w": 32,
+   "frame_h": 32,
+   "frames": 8,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Ember Portal",
+   "theme": "ember",
+   "animation": "all",
+   "file": "effects/03_ember_portal/32x32/ember_portal_32x32_sheet.png",
+   "frame_w": 32,
+   "frame_h": 32,
+   "rows": [
+    "open",
+    "idle",
+    "close"
+   ],
+   "frames": [
+    10,
+    12,
+    8
+   ],
+   "fps": 12
+  },
+  {
+   "effect": "Ember Portal",
+   "theme": "ember",
+   "animation": "open",
+   "file": "effects/03_ember_portal/64x64/ember_portal_64x64_open_strip.png",
+   "frame_w": 64,
+   "frame_h": 64,
+   "frames": 10,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Ember Portal",
+   "theme": "ember",
+   "animation": "idle",
+   "file": "effects/03_ember_portal/64x64/ember_portal_64x64_idle_strip.png",
+   "frame_w": 64,
+   "frame_h": 64,
+   "frames": 12,
+   "fps": 12,
+   "loop": true
+  },
+  {
+   "effect": "Ember Portal",
+   "theme": "ember",
+   "animation": "close",
+   "file": "effects/03_ember_portal/64x64/ember_portal_64x64_close_strip.png",
+   "frame_w": 64,
+   "frame_h": 64,
+   "frames": 8,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Ember Portal",
+   "theme": "ember",
+   "animation": "all",
+   "file": "effects/03_ember_portal/64x64/ember_portal_64x64_sheet.png",
+   "frame_w": 64,
+   "frame_h": 64,
+   "rows": [
+    "open",
+    "idle",
+    "close"
+   ],
+   "frames": [
+    10,
+    12,
+    8
+   ],
+   "fps": 12
+  },
+  {
+   "effect": "Ember Portal",
+   "theme": "ember",
+   "animation": "open",
+   "file": "effects/03_ember_portal/128x128/ember_portal_128x128_open_strip.png",
+   "frame_w": 128,
+   "frame_h": 128,
+   "frames": 10,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Ember Portal",
+   "theme": "ember",
+   "animation": "idle",
+   "file": "effects/03_ember_portal/128x128/ember_portal_128x128_idle_strip.png",
+   "frame_w": 128,
+   "frame_h": 128,
+   "frames": 12,
+   "fps": 12,
+   "loop": true
+  },
+  {
+   "effect": "Ember Portal",
+   "theme": "ember",
+   "animation": "close",
+   "file": "effects/03_ember_portal/128x128/ember_portal_128x128_close_strip.png",
+   "frame_w": 128,
+   "frame_h": 128,
+   "frames": 8,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Ember Portal",
+   "theme": "ember",
+   "animation": "all",
+   "file": "effects/03_ember_portal/128x128/ember_portal_128x128_sheet.png",
+   "frame_w": 128,
+   "frame_h": 128,
+   "rows": [
+    "open",
+    "idle",
+    "close"
+   ],
+   "frames": [
+    10,
+    12,
+    8
+   ],
+   "fps": 12
+  },
+  {
+   "effect": "Tide Portal",
+   "theme": "tide",
+   "animation": "open",
+   "file": "effects/04_tide_portal/32x32/tide_portal_32x32_open_strip.png",
+   "frame_w": 32,
+   "frame_h": 32,
+   "frames": 10,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Tide Portal",
+   "theme": "tide",
+   "animation": "idle",
+   "file": "effects/04_tide_portal/32x32/tide_portal_32x32_idle_strip.png",
+   "frame_w": 32,
+   "frame_h": 32,
+   "frames": 12,
+   "fps": 12,
+   "loop": true
+  },
+  {
+   "effect": "Tide Portal",
+   "theme": "tide",
+   "animation": "close",
+   "file": "effects/04_tide_portal/32x32/tide_portal_32x32_close_strip.png",
+   "frame_w": 32,
+   "frame_h": 32,
+   "frames": 8,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Tide Portal",
+   "theme": "tide",
+   "animation": "all",
+   "file": "effects/04_tide_portal/32x32/tide_portal_32x32_sheet.png",
+   "frame_w": 32,
+   "frame_h": 32,
+   "rows": [
+    "open",
+    "idle",
+    "close"
+   ],
+   "frames": [
+    10,
+    12,
+    8
+   ],
+   "fps": 12
+  },
+  {
+   "effect": "Tide Portal",
+   "theme": "tide",
+   "animation": "open",
+   "file": "effects/04_tide_portal/64x64/tide_portal_64x64_open_strip.png",
+   "frame_w": 64,
+   "frame_h": 64,
+   "frames": 10,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Tide Portal",
+   "theme": "tide",
+   "animation": "idle",
+   "file": "effects/04_tide_portal/64x64/tide_portal_64x64_idle_strip.png",
+   "frame_w": 64,
+   "frame_h": 64,
+   "frames": 12,
+   "fps": 12,
+   "loop": true
+  },
+  {
+   "effect": "Tide Portal",
+   "theme": "tide",
+   "animation": "close",
+   "file": "effects/04_tide_portal/64x64/tide_portal_64x64_close_strip.png",
+   "frame_w": 64,
+   "frame_h": 64,
+   "frames": 8,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Tide Portal",
+   "theme": "tide",
+   "animation": "all",
+   "file": "effects/04_tide_portal/64x64/tide_portal_64x64_sheet.png",
+   "frame_w": 64,
+   "frame_h": 64,
+   "rows": [
+    "open",
+    "idle",
+    "close"
+   ],
+   "frames": [
+    10,
+    12,
+    8
+   ],
+   "fps": 12
+  },
+  {
+   "effect": "Tide Portal",
+   "theme": "tide",
+   "animation": "open",
+   "file": "effects/04_tide_portal/128x128/tide_portal_128x128_open_strip.png",
+   "frame_w": 128,
+   "frame_h": 128,
+   "frames": 10,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Tide Portal",
+   "theme": "tide",
+   "animation": "idle",
+   "file": "effects/04_tide_portal/128x128/tide_portal_128x128_idle_strip.png",
+   "frame_w": 128,
+   "frame_h": 128,
+   "frames": 12,
+   "fps": 12,
+   "loop": true
+  },
+  {
+   "effect": "Tide Portal",
+   "theme": "tide",
+   "animation": "close",
+   "file": "effects/04_tide_portal/128x128/tide_portal_128x128_close_strip.png",
+   "frame_w": 128,
+   "frame_h": 128,
+   "frames": 8,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Tide Portal",
+   "theme": "tide",
+   "animation": "all",
+   "file": "effects/04_tide_portal/128x128/tide_portal_128x128_sheet.png",
+   "frame_w": 128,
+   "frame_h": 128,
+   "rows": [
+    "open",
+    "idle",
+    "close"
+   ],
+   "frames": [
+    10,
+    12,
+    8
+   ],
+   "fps": 12
+  },
+  {
+   "effect": "Arcane Rune Circle",
+   "theme": "arcane",
+   "file": "effects/05_arcane_rune_circle/32x32/arcane_rune_circle_32x32_sheet.png",
+   "frame_w": 32,
+   "frame_h": 32,
+   "frames": 12,
+   "fps": 12,
+   "loop": true
+  },
+  {
+   "effect": "Arcane Rune Circle",
+   "theme": "arcane",
+   "file": "effects/05_arcane_rune_circle/64x64/arcane_rune_circle_64x64_sheet.png",
+   "frame_w": 64,
+   "frame_h": 64,
+   "frames": 12,
+   "fps": 12,
+   "loop": true
+  },
+  {
+   "effect": "Verdant Rune Circle",
+   "theme": "verdant",
+   "file": "effects/06_verdant_rune_circle/32x32/verdant_rune_circle_32x32_sheet.png",
+   "frame_w": 32,
+   "frame_h": 32,
+   "frames": 12,
+   "fps": 12,
+   "loop": true
+  },
+  {
+   "effect": "Verdant Rune Circle",
+   "theme": "verdant",
+   "file": "effects/06_verdant_rune_circle/64x64/verdant_rune_circle_64x64_sheet.png",
+   "frame_w": 64,
+   "frame_h": 64,
+   "frames": 12,
+   "fps": 12,
+   "loop": true
+  },
+  {
+   "effect": "Ember Rune Circle",
+   "theme": "ember",
+   "file": "effects/07_ember_rune_circle/32x32/ember_rune_circle_32x32_sheet.png",
+   "frame_w": 32,
+   "frame_h": 32,
+   "frames": 12,
+   "fps": 12,
+   "loop": true
+  },
+  {
+   "effect": "Ember Rune Circle",
+   "theme": "ember",
+   "file": "effects/07_ember_rune_circle/64x64/ember_rune_circle_64x64_sheet.png",
+   "frame_w": 64,
+   "frame_h": 64,
+   "frames": 12,
+   "fps": 12,
+   "loop": true
+  },
+  {
+   "effect": "Tide Rune Circle",
+   "theme": "tide",
+   "file": "effects/08_tide_rune_circle/32x32/tide_rune_circle_32x32_sheet.png",
+   "frame_w": 32,
+   "frame_h": 32,
+   "frames": 12,
+   "fps": 12,
+   "loop": true
+  },
+  {
+   "effect": "Tide Rune Circle",
+   "theme": "tide",
+   "file": "effects/08_tide_rune_circle/64x64/tide_rune_circle_64x64_sheet.png",
+   "frame_w": 64,
+   "frame_h": 64,
+   "frames": 12,
+   "fps": 12,
+   "loop": true
+  },
+  {
+   "effect": "Arcane Teleport Flash",
+   "theme": "arcane",
+   "file": "effects/09_arcane_teleport/32x32/arcane_teleport_32x32_sheet.png",
+   "frame_w": 32,
+   "frame_h": 32,
+   "frames": 10,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Arcane Teleport Flash",
+   "theme": "arcane",
+   "file": "effects/09_arcane_teleport/64x64/arcane_teleport_64x64_sheet.png",
+   "frame_w": 64,
+   "frame_h": 64,
+   "frames": 10,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Verdant Teleport Flash",
+   "theme": "verdant",
+   "file": "effects/10_verdant_teleport/32x32/verdant_teleport_32x32_sheet.png",
+   "frame_w": 32,
+   "frame_h": 32,
+   "frames": 10,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Verdant Teleport Flash",
+   "theme": "verdant",
+   "file": "effects/10_verdant_teleport/64x64/verdant_teleport_64x64_sheet.png",
+   "frame_w": 64,
+   "frame_h": 64,
+   "frames": 10,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Ember Teleport Flash",
+   "theme": "ember",
+   "file": "effects/11_ember_teleport/32x32/ember_teleport_32x32_sheet.png",
+   "frame_w": 32,
+   "frame_h": 32,
+   "frames": 10,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Ember Teleport Flash",
+   "theme": "ember",
+   "file": "effects/11_ember_teleport/64x64/ember_teleport_64x64_sheet.png",
+   "frame_w": 64,
+   "frame_h": 64,
+   "frames": 10,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Tide Teleport Flash",
+   "theme": "tide",
+   "file": "effects/12_tide_teleport/32x32/tide_teleport_32x32_sheet.png",
+   "frame_w": 32,
+   "frame_h": 32,
+   "frames": 10,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Tide Teleport Flash",
+   "theme": "tide",
+   "file": "effects/12_tide_teleport/64x64/tide_teleport_64x64_sheet.png",
+   "frame_w": 64,
+   "frame_h": 64,
+   "frames": 10,
+   "fps": 12,
+   "loop": false
+  },
+  {
+   "effect": "Arcane Rune Glyphs",
+   "theme": "arcane",
+   "file": "glyphs/13_arcane_runes/32x32/arcane_runes_32x32_sheet.png",
+   "frame_w": 32,
+   "frame_h": 32,
+   "rows": 12,
+   "row_meaning": "one glyph per row",
+   "frames": 8,
+   "fps": 12,
+   "loop": true,
+   "static": "glyphs/13_arcane_runes/32x32/arcane_runes_32x32_static.png"
+  },
+  {
+   "effect": "Arcane Rune Glyphs",
+   "theme": "arcane",
+   "file": "glyphs/13_arcane_runes/64x64/arcane_runes_64x64_sheet.png",
+   "frame_w": 64,
+   "frame_h": 64,
+   "rows": 12,
+   "row_meaning": "one glyph per row",
+   "frames": 8,
+   "fps": 12,
+   "loop": true,
+   "static": "glyphs/13_arcane_runes/64x64/arcane_runes_64x64_static.png"
+  },
+  {
+   "effect": "Verdant Rune Glyphs",
+   "theme": "verdant",
+   "file": "glyphs/14_verdant_runes/32x32/verdant_runes_32x32_sheet.png",
+   "frame_w": 32,
+   "frame_h": 32,
+   "rows": 12,
+   "row_meaning": "one glyph per row",
+   "frames": 8,
+   "fps": 12,
+   "loop": true,
+   "static": "glyphs/14_verdant_runes/32x32/verdant_runes_32x32_static.png"
+  },
+  {
+   "effect": "Verdant Rune Glyphs",
+   "theme": "verdant",
+   "file": "glyphs/14_verdant_runes/64x64/verdant_runes_64x64_sheet.png",
+   "frame_w": 64,
+   "frame_h": 64,
+   "rows": 12,
+   "row_meaning": "one glyph per row",
+   "frames": 8,
+   "fps": 12,
+   "loop": true,
+   "static": "glyphs/14_verdant_runes/64x64/verdant_runes_64x64_static.png"
+  },
+  {
+   "effect": "Ember Rune Glyphs",
+   "theme": "ember",
+   "file": "glyphs/15_ember_runes/32x32/ember_runes_32x32_sheet.png",
+   "frame_w": 32,
+   "frame_h": 32,
+   "rows": 12,
+   "row_meaning": "one glyph per row",
+   "frames": 8,
+   "fps": 12,
+   "loop": true,
+   "static": "glyphs/15_ember_runes/32x32/ember_runes_32x32_static.png"
+  },
+  {
+   "effect": "Ember Rune Glyphs",
+   "theme": "ember",
+   "file": "glyphs/15_ember_runes/64x64/ember_runes_64x64_sheet.png",
+   "frame_w": 64,
+   "frame_h": 64,
+   "rows": 12,
+   "row_meaning": "one glyph per row",
+   "frames": 8,
+   "fps": 12,
+   "loop": true,
+   "static": "glyphs/15_ember_runes/64x64/ember_runes_64x64_static.png"
+  },
+  {
+   "effect": "Tide Rune Glyphs",
+   "theme": "tide",
+   "file": "glyphs/16_tide_runes/32x32/tide_runes_32x32_sheet.png",
+   "frame_w": 32,
+   "frame_h": 32,
+   "rows": 12,
+   "row_meaning": "one glyph per row",
+   "frames": 8,
+   "fps": 12,
+   "loop": true,
+   "static": "glyphs/16_tide_runes/32x32/tide_runes_32x32_static.png"
+  },
+  {
+   "effect": "Tide Rune Glyphs",
+   "theme": "tide",
+   "file": "glyphs/16_tide_runes/64x64/tide_runes_64x64_sheet.png",
+   "frame_w": 64,
+   "frame_h": 64,
+   "rows": 12,
+   "row_meaning": "one glyph per row",
+   "frames": 8,
+   "fps": 12,
+   "loop": true,
+   "static": "glyphs/16_tide_runes/64x64/tide_runes_64x64_static.png"
+  }
+ ]
+}
