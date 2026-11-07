@@ -6,11 +6,16 @@
 #include "lighting.h"
 #include "Map.h"
 #include "animated_sprite.h"
-
 #include <cstdint>
 #include <vector>
 #include <cmath>
 #include <algorithm>
+
+
+//Concurrency and monads, what could go wrong.
+#include <thread>
+#include <mutex>
+#include <chrono>
 
 #define SCREEN_WIDTH 240
 #define SCREEN_HEIGHT 240
@@ -21,7 +26,7 @@
 #define PLAYER_LIGHT_SIZE 100
 
 enum ScreenState {
-    SCREEN_MENU,
+	SCREEN_MENU,
     SCREEN_SELECT,
     SCREEN_DIALOGUE,
     SCREEN_GAME
@@ -114,7 +119,7 @@ Vector2 getGameMousePos() {
 
 //UI Functions:
 void drawTitle(const char* title){
-	int titleFontSize=40;
+	int titleFontSize=30;
 	int titleWidth=MeasureText(title,titleFontSize);
 	DrawText(title,(SCREEN_WIDTH-titleWidth)/2,20,titleFontSize,DARKGRAY);
 
@@ -127,6 +132,13 @@ void draw_button(const char* title, Rectangle button,bool overHover){
     DrawText(title, (int)(button.x + (button.width - playWidth) / 2), (int)(button.y + 15), 20, DARKGRAY);
 
 }
+
+//Concurrency MVP.
+
+std::vector<std::tuple<GameState,std::chrono::time_point<std::chrono::system_clock>>> timeLogger;
+static float timeAccumulator = 0.0f;
+
+
 
 
 
@@ -141,14 +153,14 @@ void menuLoop(void *data){
 	bool playHovered = CheckCollisionPointRec(mousePos, playButton);
     bool creditsHovered = CheckCollisionPointRec(mousePos, creditsButton);
 
-	if (playHovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-		state->currentScreen = SCREEN_SELECT;
+    if (playHovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        state->currentScreen=SCREEN_SELECT;
     }
 	if (creditsHovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         // Trigger transition to credits state
     }
 
-	drawTitle("Game Name");
+	drawTitle("The Last Loop");
 	draw_button("Play",playButton,playHovered);
 	draw_button("Credits",creditsButton,creditsHovered);
 }
@@ -338,6 +350,8 @@ void dialogueScreen(GameState* state) {
 }
 
 void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
+    const Rectangle temporaryWall = {140.0f, 58.0f, 4.0f, 108.0f};
+
     if (state->gameOver && IsKeyPressed(KEY_R)) {
         state->currentLoop = 1;
         state->timeRemaining = 60.0f;
@@ -419,8 +433,35 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
             PLAYER_ACCELERATION * deltaTime
         );
 
-        state->player.x += state->player.velx * deltaTime;
-        state->player.y += state->player.vely * deltaTime;
+        const float halfPlayer = PLAYER_RECT_SIZE * 0.5f;
+        const float nextX = std::clamp(
+            state->player.x + state->player.velx * deltaTime,
+            halfPlayer, SCREEN_WIDTH - halfPlayer
+        );
+        const float nextY = std::clamp(
+            state->player.y + state->player.vely * deltaTime,
+            halfPlayer, SCREEN_HEIGHT - halfPlayer
+        );
+
+        const Rectangle nextXBounds = {
+            nextX - halfPlayer, state->player.y - halfPlayer,
+            PLAYER_RECT_SIZE, PLAYER_RECT_SIZE
+        };
+        if (!CheckCollisionRecs(nextXBounds, temporaryWall)) {
+            state->player.x = nextX;
+        } else {
+            state->player.velx = 0.0f;
+        }
+
+        const Rectangle nextYBounds = {
+            state->player.x - halfPlayer, nextY - halfPlayer,
+            PLAYER_RECT_SIZE, PLAYER_RECT_SIZE
+        };
+        if (!CheckCollisionRecs(nextYBounds, temporaryWall)) {
+            state->player.y = nextY;
+        } else {
+            state->player.vely = 0.0f;
+        }
     }
 
     if (!state->gameOver && !state->victory && state->chronosHitCooldown <= 0.0f) {
@@ -486,7 +527,7 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
     state->islandMap.Draw({0.0f, 0.0f}, false);
 
     // Temporary occlusion-test wall; replace with the map's obstacle data later.
-    DrawRectangle(140, 58, 4, 108, DARKGRAY);
+    DrawRectangleRec(temporaryWall, DARKGRAY);
 
     Color chronosColor = DARKGRAY;
 
