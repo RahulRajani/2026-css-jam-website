@@ -21,72 +21,69 @@ enum ScreenState {
     SCREEN_SELECT,
     SCREEN_GAME
 };
+
 struct Player {
-	float x, y;
-	float velx, vely;
+    float x, y;
+    float velx, vely;
 };
 
 struct GameAssets {
-	Shader crtShader;
+    Shader crtShader;
 
-	Texture players[2];
-	Music bgm;
+    Texture players[2];
+    Music bgm;
 };
 
 struct GameState {
-<<<<<<< Updated upstream
-	Player player;
-	Chronos chronos;
-	bool carolMode;
-=======
-	ScreenState currentScreen;
-	int selectedCharacter;
-	float selectAnim;
+    ScreenState currentScreen;
+    int selectedCharacter;
+    float selectAnim;
 
-	Player player; 
->>>>>>> Stashed changes
+    Player player;
+    Chronos chronos;
 
-	int currentLoop = 1;
-	float timeRemaining = 60.0f;
-	bool gameOver = false;
-	bool chronosDangerous = false;
+    int currentLoop = 1;
+    float timeRemaining = 60.0f;
+    bool gameOver = false;
+    bool chronosDangerous = false;
 
-	GameAssets assets;
+    GameAssets assets;
 
-	RenderTexture2D screenTexture;
+    RenderTexture2D screenTexture;
 };
 
 Vector2 getGameMousePos() {
-	Vector2 mousePos = GetMousePosition();
+    Vector2 mousePos = GetMousePosition();
 
-	int scrWidth = GetScreenWidth();
-	int scrHeight = GetScreenHeight();
+    int scrWidth = GetScreenWidth();
+    int scrHeight = GetScreenHeight();
 
-	int scale = std::min(scrWidth / SCREEN_WIDTH, scrHeight / SCREEN_HEIGHT);
+    int scale = std::min(scrWidth / SCREEN_WIDTH, scrHeight / SCREEN_HEIGHT);
 
-	int scrBufferWidth = SCREEN_WIDTH * scale;
-	int scrBufferHeight = SCREEN_HEIGHT * scale;
+    int scrBufferWidth = SCREEN_WIDTH * scale;
+    int scrBufferHeight = SCREEN_HEIGHT * scale;
 
-	const Rectangle gameRect = {
-		(scrWidth - scrBufferWidth) / 2.0f,
-		(scrHeight - scrBufferHeight) / 2.0f,
-		(float)scrBufferWidth, (float)scrBufferHeight
-	};
+    const Rectangle gameRect = {
+        (scrWidth - scrBufferWidth) / 2.0f,
+        (scrHeight - scrBufferHeight) / 2.0f,
+        (float)scrBufferWidth, (float)scrBufferHeight
+    };
 
-	if (!CheckCollisionPointRec(mousePos, gameRect)) {
-		return (Vector2){-1.0f, -1.0f};
-	}
+    if (!CheckCollisionPointRec(mousePos, gameRect)) {
+        return (Vector2){-1.0f, -1.0f};
+    }
 
-	return (Vector2){
-		(mousePos.x - gameRect.x) / scale,
-		(mousePos.y - gameRect.y) / scale
-	};
+    return (Vector2){
+        (mousePos.x - gameRect.x) / scale,
+        (mousePos.y - gameRect.y) / scale
+    };
 }
+
 void DrawSlantedQuad(float x, float y, float w, float h, float slant, Color color) {
-    Vector2 v1 = { x + slant, y };          // Top-left
-    Vector2 v2 = { x, y + h };              // Bottom-left
-    Vector2 v3 = { x + w + slant, y };      // Top-right
-    Vector2 v4 = { x + w, y + h };          // Bottom-right
+    Vector2 v1 = { x + slant, y };
+    Vector2 v2 = { x, y + h };
+    Vector2 v3 = { x + w + slant, y };
+    Vector2 v4 = { x + w, y + h };
 
     DrawTriangle(v1, v2, v3, color);
     DrawTriangle(v3, v2, v4, color);
@@ -219,29 +216,73 @@ void selectScreen(GameState* state, Vector2 mousePos) {
     DrawText("[ENTER] Start", 140, 222, 7, Color{ 170, 220, 140, 255 });
 }
 
-
 void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
-    // Player mouse aim
+    if (!state->gameOver && state->timeRemaining > 0.0f) {
+        state->timeRemaining -= deltaTime;
+
+        if (state->timeRemaining < 0.0f) {
+            state->timeRemaining = 0.0f;
+        }
+
+        if (state->timeRemaining <= 0.0f) {
+            if (state->currentLoop < 3) {
+                state->currentLoop++;
+                state->timeRemaining = 60.0f;
+
+                state->player.x = SCREEN_WIDTH / 2.0f;
+                state->player.y = SCREEN_HEIGHT / 2.0f;
+                state->player.velx = 0.0f;
+                state->player.vely = 0.0f;
+            } else {
+                state->gameOver = true;
+            }
+        }
+    }
+
+    state->chronosDangerous =
+        !state->gameOver &&
+        state->timeRemaining > 0.0f &&
+        state->timeRemaining <= 15.0f;
+
+    updateChronos(state->chronos, deltaTime, state->chronosDangerous);
+
     float playerMouseAngle = std::atan2(
         mousePos.y - state->player.y,
         mousePos.x - state->player.x
     );
 
-    // Movement input
-    float accelerateX = (float)(IsKeyDown(KEY_D) - IsKeyDown(KEY_A));
-    float accelerateY = (float)(IsKeyDown(KEY_S) - IsKeyDown(KEY_W));
+    if (!state->gameOver) {
+        float accelerateX = (float)(IsKeyDown(KEY_D) - IsKeyDown(KEY_A));
+        float accelerateY = (float)(IsKeyDown(KEY_S) - IsKeyDown(KEY_W));
 
-    state->player.velx = std::lerp(
-        state->player.velx, PLAYER_VELOCITY_MAX * accelerateX, PLAYER_ACCELERATION * deltaTime
-    );
-    state->player.vely = std::lerp(
-        state->player.vely, PLAYER_VELOCITY_MAX * accelerateY, PLAYER_ACCELERATION * deltaTime
-    );
+        state->player.velx = std::lerp(
+            state->player.velx, PLAYER_VELOCITY_MAX * accelerateX,
+            PLAYER_ACCELERATION * deltaTime
+        );
+        state->player.vely = std::lerp(
+            state->player.vely, PLAYER_VELOCITY_MAX * accelerateY,
+            PLAYER_ACCELERATION * deltaTime
+        );
 
-    state->player.x += state->player.velx * deltaTime;
-    state->player.y += state->player.vely * deltaTime;
+        state->player.x += state->player.velx * deltaTime;
+        state->player.y += state->player.vely * deltaTime;
+    }
 
     ClearBackground(Color{255, 255, 255, 255});
+
+    Color chronosColor = DARKGRAY;
+
+    if (state->chronosDangerous &&
+        static_cast<int>(GetTime() * 4.0) % 2 == 0) {
+        chronosColor = RED;
+    }
+
+    DrawCircleV(
+        state->chronos.position,
+        8.0f,
+        chronosColor
+    );
+
     DrawTexturePro(
         state->assets.players[state->selectedCharacter],
         {0, 0, (float)PLAYER_RECT_SIZE, (float)PLAYER_RECT_SIZE},
@@ -251,7 +292,6 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
     );
 }
 
-// main update loop - add stuff here
 void mainLoop(void* data) {
     GameState* state = (GameState*)data;
     if (IsAudioDeviceReady()) {
@@ -264,71 +304,10 @@ void mainLoop(void* data) {
 
     UpdateMusicStream(state->assets.bgm);
 
-<<<<<<< Updated upstream
-	if (!state->gameOver && state->timeRemaining > 0.0f) {
-    state->timeRemaining -= deltaTime;
-
-    	if (state->timeRemaining < 0.0f) {
-       		state->timeRemaining = 0.0f;
-    	}
-
-		if (state->timeRemaining <= 0.0f) {
-    		if (state->currentLoop < 3) {
-        		state->currentLoop++;
-        		state->timeRemaining = 60.0f;
-
-        		state->player.x = SCREEN_WIDTH / 2 - PLAYER_RECT_SIZE / 2;
-        		state->player.y = SCREEN_HEIGHT / 2 - PLAYER_RECT_SIZE / 2;
-        		state->player.velx = 0.0f;
-        		state->player.vely = 0.0f;
-    		} else {
-        		state->gameOver = true;
-    		}
-		}
-	}
-
-	state->chronosDangerous =
-    !state->gameOver &&
-    state->timeRemaining > 0.0f &&
-    state->timeRemaining <= 15.0f;
-
-	updateChronos(state->chronos, deltaTime, state->chronosDangerous);
-
-	Vector2 gameMousePos = getGameMousePos();
-	
-	// player movement
-
-	float playerMouseAngle = std::atan2(
-		gameMousePos.y - state->player.y,
-		gameMousePos.x - state->player.x
-	);
-
-	if (!state->gameOver) {
-		float accelerateX = IsKeyDown(KEY_D) - IsKeyDown(KEY_A);
-    	float accelerateY = IsKeyDown(KEY_S) - IsKeyDown(KEY_W);
-
-   		state->player.velx = std::lerp(
-        	state->player.velx, PLAYER_VELOCITY_MAX * accelerateX,
-        	PLAYER_ACCELERATION * deltaTime
-    	);
-    	state->player.vely = std::lerp(
-        	state->player.vely, PLAYER_VELOCITY_MAX * accelerateY,
-        	PLAYER_ACCELERATION * deltaTime
-    	);
-
-    	state->player.x += state->player.velx * deltaTime;
-    	state->player.y += state->player.vely * deltaTime;
-
-    	if (IsKeyPressed(KEY_SPACE)) {
-        	state->carolMode = !state->carolMode;
-    	}
-	}
-=======
     float deltaTime = GetFrameTime();
     Vector2 gameMousePos = getGameMousePos();
->>>>>>> Stashed changes
 
-	BeginTextureMode(state->screenTexture);
+    BeginTextureMode(state->screenTexture);
         if (state->currentScreen == SCREEN_SELECT) {
             selectScreen(state, gameMousePos);
         } else if (state->currentScreen == SCREEN_GAME) {
@@ -336,32 +315,8 @@ void mainLoop(void* data) {
         }
     EndTextureMode();
 
-<<<<<<< Updated upstream
-		Color chronosColor = DARKGRAY;
-
-		if (state->chronosDangerous &&
-			static_cast<int>(GetTime() * 4.0) % 2 == 0) {
-			chronosColor = RED;
-		}
-
-		DrawCircleV(
-			state->chronos.position,
-			8.0f,
-			chronosColor
-		);
-
-		DrawTexturePro(
-			state->assets.players[state->carolMode ? 1 : 0],
-			{0, 0, PLAYER_RECT_SIZE, PLAYER_RECT_SIZE},
-			{state->player.x - PLAYER_RECT_SIZE / 2.0f, state->player.y - PLAYER_RECT_SIZE / 2.0f, PLAYER_RECT_SIZE, PLAYER_RECT_SIZE},
-			{PLAYER_RECT_SIZE / 2.0f, PLAYER_RECT_SIZE / 2.0f},
-			playerMouseAngle * RAD2DEG, {255, 255, 255, 255}
-		);
-	EndTextureMode();
-=======
     BeginDrawing();
         ClearBackground(BLACK);
->>>>>>> Stashed changes
 
         int scrWidth = GetScreenWidth();
         int scrHeight = GetScreenHeight();
@@ -392,79 +347,79 @@ void mainLoop(void* data) {
 }
 
 GameAssets loadAssets() {
-	GameAssets assets;
+    GameAssets assets = {};
 
-	#ifdef __EMSCRIPTEN__
-	assets.crtShader = LoadShader(0, "assets/crt.frag");
-	#else
-	assets.crtShader = LoadShader(0, "assets/crt_desktop.frag");
-	#endif
+    #ifdef __EMSCRIPTEN__
+    assets.crtShader = LoadShader(0, "assets/crt.frag");
+    #else
+    assets.crtShader = LoadShader(0, "assets/crt_desktop.frag");
+    #endif
 
-	float crtCurve = 1.2f;
-	float crtVignette = 0.4f;
+    float crtCurve = 1.2f;
+    float crtVignette = 0.4f;
 
-	SetShaderValue(
-		assets.crtShader, GetShaderLocation(assets.crtShader, "curvature"),
-		&crtCurve, SHADER_UNIFORM_FLOAT
-	);
-	SetShaderValue(
-		assets.crtShader, GetShaderLocation(assets.crtShader, "vignette"),
-		&crtVignette, SHADER_UNIFORM_FLOAT
-	);
+    SetShaderValue(
+        assets.crtShader, GetShaderLocation(assets.crtShader, "curvature"),
+        &crtCurve, SHADER_UNIFORM_FLOAT
+    );
+    SetShaderValue(
+        assets.crtShader, GetShaderLocation(assets.crtShader, "vignette"),
+        &crtVignette, SHADER_UNIFORM_FLOAT
+    );
 
-	assets.players[0] = LoadTexture("assets/player_jamie.png");
-	assets.players[1] = LoadTexture("assets/player_carol.png");
+    assets.players[0] = LoadTexture("assets/player_jamie.png");
+    assets.players[1] = LoadTexture("assets/player_carol.png");
 
-	assets.bgm = LoadMusicStream("assets/oooscary.mp3"); //Change Music
+    assets.bgm = LoadMusicStream("assets/oooscary.mp3");
     assets.bgm.looping = true;
     SetMusicVolume(assets.bgm, 0.7f); 
     PlayMusicStream(assets.bgm);
 
-	return assets;
+    return assets;
 }
 
 void unloadAssets(GameAssets& assets) {
-	UnloadShader(assets.crtShader);
+    UnloadShader(assets.crtShader);
 
-	UnloadTexture(assets.players[0]);
-	UnloadTexture(assets.players[1]);
+    UnloadTexture(assets.players[0]);
+    UnloadTexture(assets.players[1]);
 
-	UnloadMusicStream(assets.bgm);
+    UnloadMusicStream(assets.bgm);
 
-	assets = {};
+    assets = {};
 }
 
 int main(int argc, char** argv) {
-	SetTraceLogLevel(LOG_WARNING);
-	SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+    SetTraceLogLevel(LOG_WARNING);
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 
-	InitWindow(1280, 720, "game"); // change title
-	InitAudioDevice();
+    InitWindow(1280, 720, "game");
+    InitAudioDevice();
 
-	GameState state = {}; // create inital state
-	state.player = {SCREEN_WIDTH / 2 - PLAYER_RECT_SIZE / 2, SCREEN_HEIGHT / 2 - PLAYER_RECT_SIZE / 2};
-	state.currentScreen = SCREEN_SELECT;
-	state.selectedCharacter = 0;
-	state.selectAnim = 0.0f;
-	state.assets = loadAssets();
+    GameState state = {};
+    state.player = {SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f};
+    state.currentScreen = SCREEN_SELECT;
+    state.selectedCharacter = 0;
+    state.selectAnim = 0.0f;
+    state.assets = loadAssets();
 
-	state.screenTexture = LoadRenderTexture(SCREEN_WIDTH, SCREEN_HEIGHT);
-	SetTextureWrap(state.screenTexture.texture, TEXTURE_WRAP_CLAMP);
+    state.screenTexture = LoadRenderTexture(SCREEN_WIDTH, SCREEN_HEIGHT);
+    SetTextureWrap(state.screenTexture.texture, TEXTURE_WRAP_CLAMP);
 
-	#ifdef __EMSCRIPTEN__
-	emscripten_set_main_loop_arg(mainLoop, &state, 0, true);
-	#else
-	while (!WindowShouldClose()) {
-		mainLoop(&state);
-	}
-	#endif
+    #ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop_arg(mainLoop, &state, 0, true);
+    #else
+    while (!WindowShouldClose()) {
+        mainLoop(&state);
+    }
+    #endif
 
-	UnloadRenderTexture(state.screenTexture);
+    UnloadRenderTexture(state.screenTexture);
 
-	unloadAssets(state.assets);
+    unloadAssets(state.assets);
 
-	CloseAudioDevice();
-	CloseWindow();
+    CloseAudioDevice();
+    CloseWindow();
 
-	return 0;
+    return 0;
 }
