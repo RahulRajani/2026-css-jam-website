@@ -113,6 +113,8 @@ void mainLoop(void* data) {
 
 	BeginTextureMode(state->screenTexture);
 		ClearBackground(Color{0, 0, 0, 255});
+		// Temporary occlusion-test wall; replace with map collision data later.
+		DrawRectangle(140, 58, 4, 108, DARKGRAY);
 
 		DrawTexturePro(
 			state->assets.players[state->carolMode ? 1 : 0],
@@ -134,6 +136,7 @@ void mainLoop(void* data) {
 			0, 0, // change to actual screen world pos
 			SCREEN_WIDTH, SCREEN_HEIGHT
 		);
+
 	EndTextureMode();
 
 	BeginDrawing();
@@ -226,6 +229,11 @@ int main(int argc, char** argv) {
 
 	// init lighting map to screen size (will change to map size)
 	state.lightingMap = LightingMap(SCREEN_WIDTH, SCREEN_HEIGHT);
+	for (int y = 58; y < 166; ++y) {
+		for (int x = 140; x < 144; ++x) {
+			state.lightingMap.setObstacle(x, y, 1);
+		}
+	}
 
 	state.screenTexture = LoadRenderTexture(SCREEN_WIDTH, SCREEN_HEIGHT);
 	SetTextureWrap(state.screenTexture.texture, TEXTURE_WRAP_CLAMP);

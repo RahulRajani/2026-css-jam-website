@@ -1,10 +1,8 @@
 #pragma once
 
+#include <cmath>
 #include <cstdint>
 #include <vector>
-#include <cmath>
-
-#include <stdio.h>
 
 #include <raylib.h>
 
@@ -15,126 +13,84 @@ struct LightSource {
 };
 
 struct LightingMap {
-	int width;
-	int height;
-
+	int width = 0;
+	int height = 0;
 	std::vector<std::vector<uint8_t>> obstacles;
 
 	inline LightingMap() = default;
 
-	inline LightingMap(int width, int height) {
-		this->width = width;
-		this->height = height;
+	inline LightingMap(int width, int height)
+		: width(width), height(height), obstacles(height, std::vector<uint8_t>(width, 0)) {}
 
-		for (int i = 0; i < height; i++) {
-			this->obstacles.push_back(std::vector<uint8_t>(width, 0));
+	inline void setObstacle(int x, int y, uint8_t val) {
+		if (x >= 0 && x < width && y >= 0 && y < height) {
+			obstacles[y][x] = val;
 		}
 	}
 
-	inline void setObstacle(int x, int y, uint8_t val) {
-		this->obstacles[y][x] = val;
-	}
-
-	struct LightNode {
-		int x;
-		int y;
-		LightSource source;
-		int steps;
-
-		bool present;
-	};
-
-	// may be super fucking slow
-	// sources normalised to screen space (i.e. subtract screen top left from all pos)
 	inline void calcAndDrawLights(
 		const std::vector<LightSource>& sources,
 		int scrX, int scrY, int scrWid, int scrHeight
-	) {
-		std::vector<std::vector<LightNode>> propagatedNodes;
-		for (int i = 0; i < scrHeight; i++) {
-			propagatedNodes.push_back(std::vector<LightNode>(scrWid, LightNode{}));
-		}
-
-		std::vector<LightNode> lightQueue;
-		size_t lightTop = 0;
+	) const {
+		constexpr int rayCount = 128;
+		constexpr int lightBands = 8;
+		constexpr float rayStep = 0.5f;
+		const Color lightColor{246, 154, 84, 18};
 
 		for (const LightSource& source : sources) {
-			lightQueue.push_back(LightNode{source.x, source.y, source});
-		}
-
-		while (lightTop < lightQueue.size()) {
-			const LightNode& node = lightQueue[lightTop++];
-
-			if (node.steps >= node.source.radius) {
+			if (source.radius <= 0) {
 				continue;
 			}
 
-			if (node.y > 0 && node.y < scrHeight - 1) {
-				if (node.y > 0 && !obstacles[node.y - 1 - scrY][node.x - scrX]) {
-					LightNode& propNode = propagatedNodes[node.y - 1 - scrY][node.x - scrX];
+			std::vector<Vector2> endpoints;
+			endpoints.reserve(rayCount);
 
-					if (!propNode.present || propNode.steps > node.steps + 1) {
-						propNode.present = true;
-						propNode.source = node.source;
-						propNode.steps = node.steps + 1;
+			for (int ray = 0; ray < rayCount; ++ray) {
+				const float angle = 2.0f * PI * ray / rayCount;
+				const float dirX = std::cos(angle);
+				const float dirY = std::sin(angle);
+				float distance = static_cast<float>(source.radius);
 
-						lightQueue.push_back(LightNode{node.x, node.y - 1, node.source, node.steps + 1});
+				for (float sample = 0.0f; sample <= source.radius; sample += rayStep) {
+					const int worldX = static_cast<int>(std::floor(source.x + dirX * sample));
+					const int worldY = static_cast<int>(std::floor(source.y + dirY * sample));
+					const int screenX = worldX - scrX;
+					const int screenY = worldY - scrY;
+
+					const bool outsideMap = worldX < 0 || worldX >= width || worldY < 0 || worldY >= height;
+					const bool outsideView = screenX < 0 || screenX >= scrWid || screenY < 0 || screenY >= scrHeight;
+					const bool blocked = outsideMap || outsideView || obstacles[worldY][worldX] != 0;
+
+					if (blocked) {
+						distance = sample;
+						break;
 					}
 				}
 
-				if (node.y < scrHeight - 1 && !obstacles[node.y + 1 - scrY][node.x - scrX]) {
-					LightNode& propNode = propagatedNodes[node.y + 1 - scrY][node.x - scrX];
-
-					if (!propNode.present || propNode.steps > node.steps + 1) {
-						propNode.present = true;
-						propNode.source = node.source;
-						propNode.steps = node.steps + 1;
-
-						lightQueue.push_back(LightNode{node.x, node.y + 1, node.source, node.steps + 1});
-					}
-				}
+				endpoints.push_back(Vector2{
+					source.x - scrX + dirX * distance,
+					source.y - scrY + dirY * distance
+				});
 			}
 
-			if (node.x > 0 && node.x < scrWid - 1) {
-				if (node.x > 0 && !obstacles[node.y - scrY][node.x - 1 - scrX]) {
-					LightNode& propNode = propagatedNodes[node.y - scrY][node.x - 1 - scrX];
+			const Vector2 center{
+				static_cast<float>(source.x - scrX),
+				static_cast<float>(source.y - scrY)
+			};
 
-					if (!propNode.present || propNode.steps > node.steps + 1) {
-						propNode.present = true;
-						propNode.source = node.source;
-						propNode.steps = node.steps + 1;
-
-						lightQueue.push_back(LightNode{node.x - 1, node.y, node.source, node.steps + 1});
-					}
-				}
-
-				if (node.x < scrWid - 1 && !obstacles[node.y - scrY][node.x + 1 - scrX]) {
-					LightNode& propNode = propagatedNodes[node.y - scrY][node.x + 1 - scrX];
-
-					if (!propNode.present || propNode.steps > node.steps + 1) {
-						propNode.present = true;
-						propNode.source = node.source;
-						propNode.steps = node.steps + 1;
-
-						lightQueue.push_back(LightNode{node.x + 1, node.y, node.source, node.steps + 1});
-					}
-				}
-			}
-		}
-
-		for (int y = 0; y < scrHeight; y++) {
-			for (int x = 0; x < scrWid; x++) {
-				const LightNode& node = propagatedNodes[y][x];
-				if (node.present) {
-					int nodeX = node.x - node.source.x;
-					int nodeY = node.y - node.source.y;
-
-					float str = (
-						1.0f -
-						sqrt(nodeX * nodeX + nodeY * nodeY) / (node.source.radius)
-					);
-
-					DrawPixel(x, y, {246, 154, 84, (uint8_t)(255 * 0.5f * str)});
+			for (int band = lightBands; band > 0; --band) {
+				const float scale = band / static_cast<float>(lightBands);
+				for (int ray = 0; ray < rayCount; ++ray) {
+					const Vector2 first{
+						center.x + (endpoints[ray].x - center.x) * scale,
+						center.y + (endpoints[ray].y - center.y) * scale
+					};
+					const Vector2& nextEndpoint = endpoints[(ray + 1) % rayCount];
+					const Vector2 second{
+						center.x + (nextEndpoint.x - center.x) * scale,
+						center.y + (nextEndpoint.y - center.y) * scale
+					};
+					DrawTriangle(center, second, first, lightColor);
 				}
 			}
 		}
