@@ -619,6 +619,23 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         state->testExit.unlocked ? GREEN : DARKGRAY
     );
 
+    if (!state->gameOver && !state->victory) {
+        const float itemDx = state->player.x - state->testItem.position.x;
+        const float itemDy = state->player.y - state->testItem.position.y;
+        const float itemDistance = std::sqrt(itemDx * itemDx + itemDy * itemDy);
+        const float exitDx = state->player.x - state->testExit.position.x;
+        const float exitDy = state->player.y - state->testExit.position.y;
+        const float exitDistance = std::sqrt(exitDx * exitDx + exitDy * exitDy);
+
+        if (!state->testItem.collected && itemDistance <= 28.0f) {
+            DrawText("Press E to collect", 62, 190, 10, GOLD);
+        } else if (state->testItem.collected && exitDistance <= 30.0f) {
+            DrawText("Press E to escape", 68, 190, 10, GREEN);
+        } else if (!state->testExit.unlocked && exitDistance <= 30.0f) {
+            DrawText("Find the item first", 64, 190, 10, LIGHTGRAY);
+        }
+    }
+
     if (state->victory) {
         DrawRectangle(30, 82, SCREEN_WIDTH - 60, 76, Color{10, 30, 18, 235});
         DrawRectangleLines(30, 82, SCREEN_WIDTH - 60, 76, GREEN);
