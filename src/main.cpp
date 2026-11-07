@@ -4,6 +4,7 @@
 
 #include <raylib.h>
 #include "chronos.h"
+#include "lighting.h"
 
 #include <cstdint>
 #include <vector>
@@ -16,6 +17,7 @@
 #define PLAYER_RECT_SIZE 16
 #define PLAYER_VELOCITY_MAX 100
 #define PLAYER_ACCELERATION 15
+#define PLAYER_LIGHT_SIZE 100
 
 enum ScreenState {
     SCREEN_SELECT,
@@ -41,6 +43,7 @@ struct GameState {
 
     Player player;
     Chronos chronos;
+    LightingMap lightingMap;
 
     int currentLoop = 1;
     float timeRemaining = 60.0f;
@@ -268,7 +271,20 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         state->player.y += state->player.vely * deltaTime;
     }
 
-    ClearBackground(Color{255, 255, 255, 255});
+    ClearBackground(Color{20, 20, 24, 255});
+    // Temporary occlusion-test wall; replace with the map's obstacle data later.
+    DrawRectangle(140, 58, 4, 108, DARKGRAY);
+
+    const std::vector<LightSource> lightSources{
+        LightSource{
+            static_cast<int>(state->player.x),
+            static_cast<int>(state->player.y),
+            PLAYER_LIGHT_SIZE / 2
+        }
+    };
+    state->lightingMap.calcAndDrawLights(
+        lightSources, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT
+    );
 
     Color chronosColor = DARKGRAY;
 
@@ -402,6 +418,13 @@ int main(int argc, char** argv) {
     state.selectedCharacter = 0;
     state.selectAnim = 0.0f;
     state.assets = loadAssets();
+
+    state.lightingMap = LightingMap(SCREEN_WIDTH, SCREEN_HEIGHT);
+    for (int y = 58; y < 166; ++y) {
+        for (int x = 140; x < 144; ++x) {
+            state.lightingMap.setObstacle(x, y, 1);
+        }
+    }
 
     state.screenTexture = LoadRenderTexture(SCREEN_WIDTH, SCREEN_HEIGHT);
     SetTextureWrap(state.screenTexture.texture, TEXTURE_WRAP_CLAMP);
