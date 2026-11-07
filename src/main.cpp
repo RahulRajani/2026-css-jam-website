@@ -1,7 +1,6 @@
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
 #endif
-
 #include <raylib.h>
 #include "chronos.h"
 #include "lighting.h"
