@@ -11,7 +11,6 @@
 #include <cmath>
 #include <algorithm>
 
-
 //Concurrency and monads, what could go wrong.
 #include <thread>
 #include <mutex>
@@ -29,7 +28,8 @@ enum ScreenState {
 	SCREEN_MENU,
     SCREEN_SELECT,
     SCREEN_DIALOGUE,
-    SCREEN_GAME
+    SCREEN_GAME,
+    SCREEN_CHRONOS_CONFRONTATION
 };
 
 enum GameOverReason {
@@ -58,6 +58,8 @@ struct GameAssets {
 
     Texture players[2];
     Music bgm;
+    Sound chronosVoices[3];
+    Texture chronosPortrait;
 
     AnimatedSprite chronosSprite;
 };
@@ -84,6 +86,12 @@ struct GameState {
     float chronosHitCooldown = 0.0f;
     float playerHitFlash = 0.0f;
     float playerShakeTimer = 0.0f;
+
+    // Chronos confrontation variables
+    int confrontationLineIndex = 0;
+    float typewriterTimer = 0.0f;
+    int displayedChars = 0;
+    bool voicePlayed = false;
 
     GameAssets assets;
 
@@ -122,7 +130,6 @@ void drawTitle(const char* title){
 	int titleFontSize=30;
 	int titleWidth=MeasureText(title,titleFontSize);
 	DrawText(title,(SCREEN_WIDTH-titleWidth)/2,20,titleFontSize,DARKGRAY);
-
 }
 
 void draw_button(const char* title, Rectangle button,bool overHover){
@@ -130,23 +137,16 @@ void draw_button(const char* title, Rectangle button,bool overHover){
     DrawRectangleLines((int)button.x, (int)button.y, (int)button.width, (int)button.height, DARKGRAY);
     int playWidth = MeasureText(title, 20);
     DrawText(title, (int)(button.x + (button.width - playWidth) / 2), (int)(button.y + 15), 20, DARKGRAY);
-
 }
 
 //Concurrency MVP.
-
 std::vector<std::tuple<GameState,std::chrono::time_point<std::chrono::system_clock>>> timeLogger;
 static float timeAccumulator = 0.0f;
-
-
-
-
 
 void menuLoop(void *data){
 	GameState* state = static_cast<GameState*>(data);
 	const Vector2 mousePos = getGameMousePos();
 
-	//Bounding boxes.
 	Rectangle playButton = { (SCREEN_WIDTH - 200) / 2.0f, (SCREEN_HEIGHT / 2.0f) - 40.0f, 200.0f, 50.0f };
     Rectangle creditsButton = { (SCREEN_WIDTH - 200) / 2.0f, (SCREEN_HEIGHT / 2.0f) + 20.0f, 200.0f, 50.0f };
 
@@ -519,30 +519,26 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         const float distance = std::sqrt(dx * dx + dy * dy);
 
         if (distance <= 18.0f) {
-            state->victory = true;
+            StopMusicStream(state->assets.bgm);
+
+            state->currentScreen = SCREEN_CHRONOS_CONFRONTATION;
+            state->confrontationLineIndex = 0;
+            state->displayedChars = 0;
+            state->typewriterTimer = 0.0f;
+            state->voicePlayed = false;
         }
     }
 
     ClearBackground(Color{20, 20, 24, 255});
     state->islandMap.Draw({0.0f, 0.0f}, false);
 
-    // Temporary occlusion-test wall; replace with the map's obstacle data later.
     DrawRectangleRec(temporaryWall, DARKGRAY);
 
     Color chronosColor = DARKGRAY;
-
     if (state->chronosDangerous &&
         static_cast<int>(GetTime() * 4.0) % 2 == 0) {
         chronosColor = RED;
     }
-
-    // DrawCircleV(
-    //     state->chronos.position,
-    //     8.0f,
-    //     chronosColor
-    // );
-
-    // draw chronos
 
     state->assets.chronosSprite.updateFrame(deltaTime);
     DrawTexturePro(
@@ -681,11 +677,112 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
     DrawText(loopText.c_str(), 8, 22, 10, RAYWHITE);
 }
 
+void chronosConfrontationScreen(GameState* state, float deltaTime) {
+    const char* lines[] = {
+        "How dare you... How dare a fleeting, microscopic speck defy the grand design of the ages!",
+        " I am the beginning and the end, yet you treat my absolute authority like a trivial hurdle?!",
+        "I will age your very soul to ash!"
+    };
+    const int totalLines = 3;
+
+    if (!state->voicePlayed && IsAudioDeviceReady()) {
+        if (state->confrontationLineIndex >= 0 && state->confrontationLineIndex < totalLines) {
+            PlaySound(state->assets.chronosVoices[state->confrontationLineIndex]);
+        }
+        state->voicePlayed = true;
+    }
+
+    const float charsPerSecond = 35.0f;
+    if (state->confrontationLineIndex < totalLines) {
+        std::string currentLine = lines[state->confrontationLineIndex];
+        if (state->displayedChars < (int)currentLine.length()) {
+            state->typewriterTimer += deltaTime;
+            if (state->typewriterTimer >= (1.0f / charsPerSecond)) {
+                state->displayedChars++;
+                state->typewriterTimer = 0.0f;
+            }
+        }
+    }
+
+    if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        if (state->confrontationLineIndex < totalLines) {
+            std::string currentLine = lines[state->confrontationLineIndex];
+            if (state->displayedChars < (int)currentLine.length()) {
+                state->displayedChars = currentLine.length();
+            } else {
+                if (IsSoundPlaying(state->assets.chronosVoices[state->confrontationLineIndex])) {
+                    StopSound(state->assets.chronosVoices[state->confrontationLineIndex]);
+                }
+
+                state->confrontationLineIndex++;
+                state->displayedChars = 0;
+                state->typewriterTimer = 0.0f;
+                state->voicePlayed = false;
+
+                if (state->confrontationLineIndex >= totalLines) {
+                    state->victory = true;
+                    state->currentScreen = SCREEN_GAME;
+                }
+            }
+        }
+    }
+
+    ClearBackground(Color{ 10, 10, 15, 255 });
+
+    if (state->assets.chronosPortrait.id != 0) {
+        DrawTexturePro(
+            state->assets.chronosPortrait,
+            { 0, 0, (float)state->assets.chronosPortrait.width, (float)state->assets.chronosPortrait.height },
+            { -10.0f, SCREEN_HEIGHT - 175.0f, 110.0f, 130.0f },
+            { 0, 0 }, 0.0f, WHITE
+        );
+    }
+
+    DrawRectangle(10, 145, SCREEN_WIDTH - 20, 85, Color{ 15, 15, 20, 240 });
+    DrawRectangleLines(10, 145, SCREEN_WIDTH - 20, 85, RED);
+
+    DrawRectangle(20, 135, 60, 16, BLACK);
+    DrawRectangleLines(20, 135, 60, 16, RED);
+    DrawText("CHRONOS", 24, 139, 8, RED);
+
+    if (state->confrontationLineIndex < totalLines) {
+        std::string fullLine = lines[state->confrontationLineIndex];
+        std::string subText = fullLine.substr(0, state->displayedChars);
+
+        int maxCharsPerLine = 34;
+        std::string line1 = "";
+        std::string line2 = "";
+        std::string line3 = "";
+
+        if (subText.length() > maxCharsPerLine) {
+            line1 = subText.substr(0, maxCharsPerLine);
+            if (subText.length() > maxCharsPerLine * 2) {
+                line2 = subText.substr(maxCharsPerLine, maxCharsPerLine);
+                line3 = subText.substr(maxCharsPerLine * 2);
+            } else {
+                line2 = subText.substr(maxCharsPerLine);
+            }
+        } else {
+            line1 = subText;
+        }
+        
+        DrawText(line1.c_str(), 20, 155, 8, RAYWHITE);
+        DrawText(line2.c_str(), 20, 167, 8, RAYWHITE);
+        DrawText(line3.c_str(), 20, 179, 8, RAYWHITE);
+    }
+
+    if (static_cast<int>(GetTime() * 3.0) % 2 == 0) {
+        DrawText("[CLICK / ENTER]", SCREEN_WIDTH - 90, 220, 6, RED);
+    }
+}
+
 void mainLoop(void* data) {
     GameState* state = (GameState*)data;
     if (IsAudioDeviceReady() && !IsMusicStreamPlaying(state->assets.bgm)) {
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || GetKeyPressed() != 0) {
-            PlayMusicStream(state->assets.bgm);
+        if (state->currentScreen != SCREEN_CHRONOS_CONFRONTATION) {
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || GetKeyPressed() != 0) {
+                PlayMusicStream(state->assets.bgm);
+            }
         }
     }
 
@@ -704,6 +801,8 @@ void mainLoop(void* data) {
             dialogueScreen(state);
         } else if (state->currentScreen == SCREEN_GAME) {
             gameScreen(state, gameMousePos, deltaTime);
+        } else if (state->currentScreen == SCREEN_CHRONOS_CONFRONTATION) {
+            chronosConfrontationScreen(state, deltaTime);
         }
     EndTextureMode();
 
@@ -761,6 +860,10 @@ GameAssets loadAssets() {
 
     assets.players[0] = LoadTexture("assets/player_jamie.png");
     assets.players[1] = LoadTexture("assets/player_carol.png");
+    assets.chronosPortrait = LoadTexture("assets/chronos-anim1.png"); 
+    assets.chronosVoices[0] = LoadSound("assets/PartOne.mp3");
+    assets.chronosVoices[1] = LoadSound("assets/PartTwo.mp3");
+    assets.chronosVoices[2] = LoadSound("assets/PartThree.mp3");
 
     assets.bgm = LoadMusicStream("assets/oooscary.mp3");
     assets.bgm.looping = true;
@@ -786,6 +889,10 @@ void unloadAssets(GameAssets& assets) {
 
     UnloadTexture(assets.players[0]);
     UnloadTexture(assets.players[1]);
+    UnloadTexture(assets.chronosPortrait);
+    UnloadSound(assets.chronosVoices[0]);
+    UnloadSound(assets.chronosVoices[1]);
+    UnloadSound(assets.chronosVoices[2]);
 
     UnloadMusicStream(assets.bgm);
 
