@@ -6,11 +6,16 @@
 #include "lighting.h"
 #include "Map.h"
 #include "animated_sprite.h"
-
 #include <cstdint>
 #include <vector>
 #include <cmath>
 #include <algorithm>
+
+
+//Concurrency and monads, what could go wrong.
+#include <thread>
+#include <mutex>
+#include <chrono>
 
 #define SCREEN_WIDTH 240
 #define SCREEN_HEIGHT 240
@@ -91,7 +96,7 @@ Vector2 getGameMousePos() {
 
 //UI Functions:
 void drawTitle(const char* title){
-	int titleFontSize=40;
+	int titleFontSize=30;
 	int titleWidth=MeasureText(title,titleFontSize);
 	DrawText(title,(SCREEN_WIDTH-titleWidth)/2,20,titleFontSize,DARKGRAY);
 
@@ -104,6 +109,13 @@ void draw_button(const char* title, Rectangle button,bool overHover){
     DrawText(title, (int)(button.x + (button.width - playWidth) / 2), (int)(button.y + 15), 20, DARKGRAY);
 
 }
+
+//Concurrency MVP.
+
+std::vector<std::tuple<GameState,std::chrono::time_point<std::chrono::system_clock>>> timeLogger;
+static float timeAccumulator = 0.0f;
+
+
 
 
 
@@ -125,7 +137,7 @@ void menuLoop(void *data){
         // Trigger transition to credits state
     }
 
-	drawTitle("Game Name");
+	drawTitle("The Last Loop");
 	draw_button("Play",playButton,playHovered);
 	draw_button("Credits",creditsButton,creditsHovered);
 }
