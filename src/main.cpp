@@ -2,9 +2,10 @@
 #include <emscripten/emscripten.h>
 #endif
 #include <raylib.h>
-#include "../Include/chronos.h"
-#include "../Include/lighting.h"
-#include "../Include/Map.h"
+#include "chronos.h"
+#include "lighting.h"
+#include "Map.h"
+#include "animated_sprite.h"
 
 #include <cstdint>
 #include <vector>
@@ -36,10 +37,9 @@ struct GameAssets {
 
     Texture players[2];
     Music bgm;
+
+    AnimatedSprite chronosSprite;
 };
-
-
-
 
 struct GameState {
     ScreenState currentScreen;
@@ -372,6 +372,51 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
     // Temporary occlusion-test wall; replace with the map's obstacle data later.
     DrawRectangle(140, 58, 4, 108, DARKGRAY);
 
+    Color chronosColor = DARKGRAY;
+
+    if (state->chronosDangerous &&
+        static_cast<int>(GetTime() * 4.0) % 2 == 0) {
+        chronosColor = RED;
+    }
+
+    // DrawCircleV(
+    //     state->chronos.position,
+    //     8.0f,
+    //     chronosColor
+    // );
+
+    // draw chronos
+
+    state->assets.chronosSprite.updateFrame(deltaTime);
+    DrawTexturePro(
+        state->assets.chronosSprite.getCurrentTexture(),
+        {
+            0, 0,
+            (float)state->assets.chronosSprite.getCurrentTexture().width,
+            (float)state->assets.chronosSprite.getCurrentTexture().height
+        },
+        {
+            state->chronos.position.x - state->assets.chronosSprite.getCurrentTexture().width / 2,
+            state->chronos.position.y - state->assets.chronosSprite.getCurrentTexture().height / 2,
+            (float)state->assets.chronosSprite.getCurrentTexture().width,
+            (float)state->assets.chronosSprite.getCurrentTexture().height
+        },
+        {
+            (float)state->assets.chronosSprite.getCurrentTexture().width / 2,
+            (float)state->assets.chronosSprite.getCurrentTexture().height / 2
+        },
+        0.0f,
+        {180, 180, 180, 255}
+    );
+
+    DrawTexturePro(
+        state->assets.players[state->selectedCharacter],
+        {0, 0, (float)PLAYER_RECT_SIZE, (float)PLAYER_RECT_SIZE},
+        {state->player.x, state->player.y, (float)PLAYER_RECT_SIZE, (float)PLAYER_RECT_SIZE},
+        {PLAYER_RECT_SIZE / 2.0f, PLAYER_RECT_SIZE / 2.0f},
+        playerMouseAngle * RAD2DEG, {255, 255, 255, 255}
+    );
+
     const std::vector<LightSource> lightSources{
         LightSource{
             static_cast<int>(state->player.x),
@@ -381,27 +426,6 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
     };
     state->lightingMap.calcAndDrawLights(
         lightSources, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT
-    );
-
-    Color chronosColor = DARKGRAY;
-
-    if (state->chronosDangerous &&
-        static_cast<int>(GetTime() * 4.0) % 2 == 0) {
-        chronosColor = RED;
-    }
-
-    DrawCircleV(
-        state->chronos.position,
-        8.0f,
-        chronosColor
-    );
-
-    DrawTexturePro(
-        state->assets.players[state->selectedCharacter],
-        {0, 0, (float)PLAYER_RECT_SIZE, (float)PLAYER_RECT_SIZE},
-        {state->player.x, state->player.y, (float)PLAYER_RECT_SIZE, (float)PLAYER_RECT_SIZE},
-        {PLAYER_RECT_SIZE / 2.0f, PLAYER_RECT_SIZE / 2.0f},
-        playerMouseAngle * RAD2DEG, {255, 255, 255, 255}
     );
 }
 
@@ -491,6 +515,17 @@ GameAssets loadAssets() {
     SetMusicVolume(assets.bgm, 0.7f);
     PlayMusicStream(assets.bgm);
 
+    assets.chronosSprite = AnimatedSprite(
+        {
+            "assets/chronos-anim1.png",
+            "assets/chronos-anim2.png",
+            "assets/chronos-anim3.png",
+            "assets/chronos-anim4.png",
+            "assets/chronos-anim5.png"
+        },
+        0.1f
+    );
+
     return assets;
 }
 
@@ -501,6 +536,8 @@ void unloadAssets(GameAssets& assets) {
     UnloadTexture(assets.players[1]);
 
     UnloadMusicStream(assets.bgm);
+
+    assets.chronosSprite.unloadTextures();
 
     assets = {};
 }
