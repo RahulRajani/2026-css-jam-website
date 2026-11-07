@@ -410,6 +410,8 @@ void generateIsland(TileMap& map) {
 }
 
 void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
+    // Temporary wall used for collision testing until map obstacle data is wired in.
+    const Rectangle temporaryWall = { 140.0f, 58.0f, 4.0f, 108.0f };
     if (state->gameOver && IsKeyPressed(KEY_R)) {
         state->currentLoop = 1;
         state->timeRemaining = 60.0f;
@@ -523,11 +525,56 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
                 const float safeDistance = std::max(distance, 0.001f);
                 const float pushX = dx / safeDistance;
                 const float pushY = dy / safeDistance;
-                state->player.x += pushX * 30.0f;
-                state->player.y += pushY * 30.0f;
-                state->player.velx = pushX * 80.0f;
-                state->player.vely = pushY * 80.0f;
-                clampPlayerToWorld(state);
+                const float halfPlayer = PLAYER_RECT_SIZE * 0.5f;
+                const float knockbackX = pushX * 30.0f;
+                const float knockbackY = pushY * 30.0f;
+                const auto makesPlayerBounds = [halfPlayer](float x, float y) {
+                    return Rectangle{
+                        x - halfPlayer,
+                        y - halfPlayer,
+                        PLAYER_RECT_SIZE,
+                        PLAYER_RECT_SIZE
+                    };
+                };
+
+                const Rectangle worldBounds = getWorldBounds(state);
+                const float minX = worldBounds.x + halfPlayer;
+                const float maxX = worldBounds.x + worldBounds.width - halfPlayer;
+                const float minY = worldBounds.y + halfPlayer;
+                const float maxY = worldBounds.y + worldBounds.height - halfPlayer;
+                const float fullX = std::clamp(state->player.x + knockbackX, minX, maxX);
+                const float fullY = std::clamp(state->player.y + knockbackY, minY, maxY);
+
+                if (!CheckCollisionRecs(makesPlayerBounds(fullX, fullY), temporaryWall)) {
+                    state->player.x = fullX;
+                    state->player.y = fullY;
+                    state->player.velx = pushX * 80.0f;
+                    state->player.vely = pushY * 80.0f;
+                } else {
+                    const float xOnly = std::clamp(state->player.x + knockbackX, minX, maxX);
+                    const float yOnly = std::clamp(state->player.y + knockbackY, minY, maxY);
+                    const bool canMoveX = !CheckCollisionRecs(
+                        makesPlayerBounds(xOnly, state->player.y), temporaryWall
+                    );
+                    const bool canMoveY = !CheckCollisionRecs(
+                        makesPlayerBounds(state->player.x, yOnly), temporaryWall
+                    );
+
+                    if (canMoveX) {
+                        state->player.x = xOnly;
+                        state->player.velx = pushX * 80.0f;
+                    } else {
+                        state->player.velx = 0.0f;
+                    }
+
+                    if (canMoveY) {
+                        state->player.y = yOnly;
+                        state->player.vely = pushY * 80.0f;
+                    } else {
+                        state->player.vely = 0.0f;
+                    }
+                }
+
                 state->playerHitFlash = 0.25f;
                 state->playerShakeTimer = 0.35f;
             }
