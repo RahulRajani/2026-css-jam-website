@@ -1,0 +1,815 @@
+{
+ "meta": {
+  "name": "Pixel Top-down Beach and Island Tileset",
+  "tile_size": 16,
+  "image": "spritesheet.png",
+  "count": 115
+ },
+ "frames": {
+  "sand_1": {
+   "x": 0,
+   "y": 0,
+   "w": 16,
+   "h": 16,
+   "category": "ground"
+  },
+  "sand_2": {
+   "x": 16,
+   "y": 0,
+   "w": 16,
+   "h": 16,
+   "category": "ground"
+  },
+  "sand_3": {
+   "x": 32,
+   "y": 0,
+   "w": 16,
+   "h": 16,
+   "category": "ground"
+  },
+  "sand_wet": {
+   "x": 48,
+   "y": 0,
+   "w": 16,
+   "h": 16,
+   "category": "ground"
+  },
+  "sand_shells": {
+   "x": 64,
+   "y": 0,
+   "w": 16,
+   "h": 16,
+   "category": "ground"
+  },
+  "grass_1": {
+   "x": 80,
+   "y": 0,
+   "w": 16,
+   "h": 16,
+   "category": "ground"
+  },
+  "grass_2": {
+   "x": 96,
+   "y": 0,
+   "w": 16,
+   "h": 16,
+   "category": "ground"
+  },
+  "grass_3": {
+   "x": 112,
+   "y": 0,
+   "w": 16,
+   "h": 16,
+   "category": "ground"
+  },
+  "grass_flowers": {
+   "x": 128,
+   "y": 0,
+   "w": 16,
+   "h": 16,
+   "category": "ground"
+  },
+  "jungle_floor": {
+   "x": 144,
+   "y": 0,
+   "w": 16,
+   "h": 16,
+   "category": "ground"
+  },
+  "dirt": {
+   "x": 0,
+   "y": 16,
+   "w": 16,
+   "h": 16,
+   "category": "ground"
+  },
+  "dirt_path": {
+   "x": 16,
+   "y": 16,
+   "w": 16,
+   "h": 16,
+   "category": "ground"
+  },
+  "rock_floor": {
+   "x": 32,
+   "y": 16,
+   "w": 16,
+   "h": 16,
+   "category": "ground"
+  },
+  "volcanic_sand": {
+   "x": 48,
+   "y": 16,
+   "w": 16,
+   "h": 16,
+   "category": "ground"
+  },
+  "water_shallow": {
+   "x": 64,
+   "y": 16,
+   "w": 16,
+   "h": 16,
+   "category": "water"
+  },
+  "water_shallow_2": {
+   "x": 80,
+   "y": 16,
+   "w": 16,
+   "h": 16,
+   "category": "water"
+  },
+  "water_deep": {
+   "x": 96,
+   "y": 16,
+   "w": 16,
+   "h": 16,
+   "category": "water"
+  },
+  "water_deep_2": {
+   "x": 112,
+   "y": 16,
+   "w": 16,
+   "h": 16,
+   "category": "water"
+  },
+  "water_lagoon": {
+   "x": 128,
+   "y": 16,
+   "w": 16,
+   "h": 16,
+   "category": "water"
+  },
+  "water_tide_pool": {
+   "x": 144,
+   "y": 16,
+   "w": 16,
+   "h": 16,
+   "category": "water"
+  },
+  "shore_north": {
+   "x": 0,
+   "y": 32,
+   "w": 16,
+   "h": 16,
+   "category": "shore"
+  },
+  "shore_south": {
+   "x": 16,
+   "y": 32,
+   "w": 16,
+   "h": 16,
+   "category": "shore"
+  },
+  "shore_east": {
+   "x": 32,
+   "y": 32,
+   "w": 16,
+   "h": 16,
+   "category": "shore"
+  },
+  "shore_west": {
+   "x": 48,
+   "y": 32,
+   "w": 16,
+   "h": 16,
+   "category": "shore"
+  },
+  "shore_corner_nw": {
+   "x": 64,
+   "y": 32,
+   "w": 16,
+   "h": 16,
+   "category": "shore"
+  },
+  "shore_corner_ne": {
+   "x": 80,
+   "y": 32,
+   "w": 16,
+   "h": 16,
+   "category": "shore"
+  },
+  "shore_corner_sw": {
+   "x": 96,
+   "y": 32,
+   "w": 16,
+   "h": 16,
+   "category": "shore"
+  },
+  "shore_corner_se": {
+   "x": 112,
+   "y": 32,
+   "w": 16,
+   "h": 16,
+   "category": "shore"
+  },
+  "shore_inner_nw": {
+   "x": 128,
+   "y": 32,
+   "w": 16,
+   "h": 16,
+   "category": "shore"
+  },
+  "shore_inner_ne": {
+   "x": 144,
+   "y": 32,
+   "w": 16,
+   "h": 16,
+   "category": "shore"
+  },
+  "shore_inner_sw": {
+   "x": 0,
+   "y": 48,
+   "w": 16,
+   "h": 16,
+   "category": "shore"
+  },
+  "shore_inner_se": {
+   "x": 16,
+   "y": 48,
+   "w": 16,
+   "h": 16,
+   "category": "shore"
+  },
+  "cliff_face": {
+   "x": 32,
+   "y": 48,
+   "w": 16,
+   "h": 16,
+   "category": "shore"
+  },
+  "cliff_face_sand": {
+   "x": 48,
+   "y": 48,
+   "w": 16,
+   "h": 16,
+   "category": "shore"
+  },
+  "boardwalk_h": {
+   "x": 64,
+   "y": 48,
+   "w": 16,
+   "h": 16,
+   "category": "wood"
+  },
+  "boardwalk_v": {
+   "x": 80,
+   "y": 48,
+   "w": 16,
+   "h": 16,
+   "category": "wood"
+  },
+  "dock_h": {
+   "x": 96,
+   "y": 48,
+   "w": 16,
+   "h": 16,
+   "category": "wood"
+  },
+  "dock_v": {
+   "x": 112,
+   "y": 48,
+   "w": 16,
+   "h": 16,
+   "category": "wood"
+  },
+  "bridge_rope_h": {
+   "x": 128,
+   "y": 48,
+   "w": 16,
+   "h": 16,
+   "category": "wood"
+  },
+  "hut_roof_thatch": {
+   "x": 144,
+   "y": 48,
+   "w": 16,
+   "h": 16,
+   "category": "wood"
+  },
+  "hut_wall_wood": {
+   "x": 0,
+   "y": 64,
+   "w": 16,
+   "h": 16,
+   "category": "wood"
+  },
+  "stone_wall": {
+   "x": 16,
+   "y": 64,
+   "w": 16,
+   "h": 16,
+   "category": "wood"
+  },
+  "wet_stone_floor": {
+   "x": 32,
+   "y": 64,
+   "w": 16,
+   "h": 16,
+   "category": "ground"
+  },
+  "palm_tree_top_1": {
+   "x": 48,
+   "y": 64,
+   "w": 16,
+   "h": 16,
+   "category": "nature"
+  },
+  "palm_tree_top_2": {
+   "x": 64,
+   "y": 64,
+   "w": 16,
+   "h": 16,
+   "category": "nature"
+  },
+  "palm_tree_side": {
+   "x": 80,
+   "y": 64,
+   "w": 16,
+   "h": 16,
+   "category": "nature"
+  },
+  "bush_green": {
+   "x": 96,
+   "y": 64,
+   "w": 16,
+   "h": 16,
+   "category": "nature"
+  },
+  "bush_berry": {
+   "x": 112,
+   "y": 64,
+   "w": 16,
+   "h": 16,
+   "category": "nature"
+  },
+  "fern": {
+   "x": 128,
+   "y": 64,
+   "w": 16,
+   "h": 16,
+   "category": "nature"
+  },
+  "flowers_pink": {
+   "x": 144,
+   "y": 64,
+   "w": 16,
+   "h": 16,
+   "category": "nature"
+  },
+  "flowers_red": {
+   "x": 0,
+   "y": 80,
+   "w": 16,
+   "h": 16,
+   "category": "nature"
+  },
+  "hibiscus": {
+   "x": 16,
+   "y": 80,
+   "w": 16,
+   "h": 16,
+   "category": "nature"
+  },
+  "rock_small": {
+   "x": 32,
+   "y": 80,
+   "w": 16,
+   "h": 16,
+   "category": "nature"
+  },
+  "rock_big": {
+   "x": 48,
+   "y": 80,
+   "w": 16,
+   "h": 16,
+   "category": "nature"
+  },
+  "rock_mossy": {
+   "x": 64,
+   "y": 80,
+   "w": 16,
+   "h": 16,
+   "category": "nature"
+  },
+  "seashell_scallop": {
+   "x": 80,
+   "y": 80,
+   "w": 16,
+   "h": 16,
+   "category": "beach"
+  },
+  "seashell_pink": {
+   "x": 96,
+   "y": 80,
+   "w": 16,
+   "h": 16,
+   "category": "beach"
+  },
+  "seashell_spiral": {
+   "x": 112,
+   "y": 80,
+   "w": 16,
+   "h": 16,
+   "category": "beach"
+  },
+  "starfish": {
+   "x": 128,
+   "y": 80,
+   "w": 16,
+   "h": 16,
+   "category": "beach"
+  },
+  "crab_1": {
+   "x": 144,
+   "y": 80,
+   "w": 16,
+   "h": 16,
+   "category": "critters"
+  },
+  "crab_2": {
+   "x": 0,
+   "y": 96,
+   "w": 16,
+   "h": 16,
+   "category": "critters"
+  },
+  "seagull_1": {
+   "x": 16,
+   "y": 96,
+   "w": 16,
+   "h": 16,
+   "category": "critters"
+  },
+  "seagull_2": {
+   "x": 32,
+   "y": 96,
+   "w": 16,
+   "h": 16,
+   "category": "critters"
+  },
+  "turtle_1": {
+   "x": 48,
+   "y": 96,
+   "w": 16,
+   "h": 16,
+   "category": "critters"
+  },
+  "turtle_2": {
+   "x": 64,
+   "y": 96,
+   "w": 16,
+   "h": 16,
+   "category": "critters"
+  },
+  "fish_orange": {
+   "x": 80,
+   "y": 96,
+   "w": 16,
+   "h": 16,
+   "category": "critters"
+  },
+  "fish_blue": {
+   "x": 96,
+   "y": 96,
+   "w": 16,
+   "h": 16,
+   "category": "critters"
+  },
+  "parrot": {
+   "x": 112,
+   "y": 96,
+   "w": 16,
+   "h": 16,
+   "category": "critters"
+  },
+  "hermit_crab": {
+   "x": 128,
+   "y": 96,
+   "w": 16,
+   "h": 16,
+   "category": "critters"
+  },
+  "beach_towel_red": {
+   "x": 144,
+   "y": 96,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "beach_towel_blue": {
+   "x": 0,
+   "y": 112,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "beach_umbrella_red": {
+   "x": 16,
+   "y": 112,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "beach_umbrella_yellow": {
+   "x": 32,
+   "y": 112,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "beach_chair": {
+   "x": 48,
+   "y": 112,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "beach_ball": {
+   "x": 64,
+   "y": 112,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "sandcastle": {
+   "x": 80,
+   "y": 112,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "campfire_1": {
+   "x": 96,
+   "y": 112,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "campfire_2": {
+   "x": 112,
+   "y": 112,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "tiki_torch": {
+   "x": 128,
+   "y": 112,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "hammock": {
+   "x": 144,
+   "y": 112,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "barrel": {
+   "x": 0,
+   "y": 128,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "crate": {
+   "x": 16,
+   "y": 128,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "treasure_chest_closed": {
+   "x": 32,
+   "y": 128,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "treasure_chest_open": {
+   "x": 48,
+   "y": 128,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "treasure_x_mark": {
+   "x": 64,
+   "y": 128,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "rowboat": {
+   "x": 80,
+   "y": 128,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "canoe": {
+   "x": 96,
+   "y": 128,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "life_ring": {
+   "x": 112,
+   "y": 128,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "anchor": {
+   "x": 128,
+   "y": 128,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "lighthouse_top": {
+   "x": 144,
+   "y": 128,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "wooden_sign": {
+   "x": 0,
+   "y": 144,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "hut_roof_top": {
+   "x": 16,
+   "y": 144,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "hut_door": {
+   "x": 32,
+   "y": 144,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "hut_window": {
+   "x": 48,
+   "y": 144,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "fence_v": {
+   "x": 64,
+   "y": 144,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "fence_h": {
+   "x": 80,
+   "y": 144,
+   "w": 16,
+   "h": 16,
+   "category": "props"
+  },
+  "coconut": {
+   "x": 96,
+   "y": 144,
+   "w": 16,
+   "h": 16,
+   "category": "items"
+  },
+  "coconut_drink": {
+   "x": 112,
+   "y": 144,
+   "w": 16,
+   "h": 16,
+   "category": "items"
+  },
+  "pineapple": {
+   "x": 128,
+   "y": 144,
+   "w": 16,
+   "h": 16,
+   "category": "items"
+  },
+  "banana": {
+   "x": 144,
+   "y": 144,
+   "w": 16,
+   "h": 16,
+   "category": "items"
+  },
+  "mango": {
+   "x": 0,
+   "y": 160,
+   "w": 16,
+   "h": 16,
+   "category": "items"
+  },
+  "pearl_oyster": {
+   "x": 16,
+   "y": 160,
+   "w": 16,
+   "h": 16,
+   "category": "items"
+  },
+  "message_bottle": {
+   "x": 32,
+   "y": 160,
+   "w": 16,
+   "h": 16,
+   "category": "items"
+  },
+  "gold_coin": {
+   "x": 48,
+   "y": 160,
+   "w": 16,
+   "h": 16,
+   "category": "items"
+  },
+  "golden_key": {
+   "x": 64,
+   "y": 160,
+   "w": 16,
+   "h": 16,
+   "category": "items"
+  },
+  "fishing_rod": {
+   "x": 80,
+   "y": 160,
+   "w": 16,
+   "h": 16,
+   "category": "items"
+  },
+  "shovel": {
+   "x": 96,
+   "y": 160,
+   "w": 16,
+   "h": 16,
+   "category": "items"
+  },
+  "islander_explorer": {
+   "x": 112,
+   "y": 160,
+   "w": 16,
+   "h": 16,
+   "category": "characters"
+  },
+  "pirate": {
+   "x": 128,
+   "y": 160,
+   "w": 16,
+   "h": 16,
+   "category": "characters"
+  },
+  "fisherman": {
+   "x": 144,
+   "y": 160,
+   "w": 16,
+   "h": 16,
+   "category": "characters"
+  },
+  "mermaid": {
+   "x": 0,
+   "y": 176,
+   "w": 16,
+   "h": 16,
+   "category": "characters"
+  },
+  "tribal_dancer": {
+   "x": 16,
+   "y": 176,
+   "w": 16,
+   "h": 16,
+   "category": "characters"
+  },
+  "monkey": {
+   "x": 32,
+   "y": 176,
+   "w": 16,
+   "h": 16,
+   "category": "critters"
+  },
+  "jellyfish_1": {
+   "x": 48,
+   "y": 176,
+   "w": 16,
+   "h": 16,
+   "category": "critters"
+  },
+  "jellyfish_2": {
+   "x": 64,
+   "y": 176,
+   "w": 16,
+   "h": 16,
+   "category": "critters"
+  }
+ }
+}
