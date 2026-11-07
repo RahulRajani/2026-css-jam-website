@@ -28,6 +28,7 @@ struct GameAssets {
 
 struct GameState {
 	Player player;
+	bool carolMode;
 
 	GameAssets assets;
 
@@ -69,6 +70,8 @@ void mainLoop(void* data) {
 
 	Vector2 gameMousePos = getGameMousePos();
 	
+	// player movement
+
 	float playerMouseAngle = std::atan2(
 		gameMousePos.y - state->player.y,
 		gameMousePos.x - state->player.x
@@ -87,11 +90,16 @@ void mainLoop(void* data) {
 	state->player.x += state->player.velx * deltaTime;
 	state->player.y += state->player.vely * deltaTime;
 
+	// player mode switch
+	if (IsKeyPressed(KEY_SPACE)) {
+		state->carolMode = !state->carolMode;
+	}
+
 	BeginTextureMode(state->screenTexture);
 		ClearBackground(Color{255, 255, 255, 255});
 
 		DrawTexturePro(
-			state->assets.players[0],
+			state->assets.players[state->carolMode ? 1 : 0],
 			{0, 0, PLAYER_RECT_SIZE, PLAYER_RECT_SIZE},
 			{state->player.x - PLAYER_RECT_SIZE / 2.0f, state->player.y - PLAYER_RECT_SIZE / 2.0f, PLAYER_RECT_SIZE, PLAYER_RECT_SIZE},
 			{PLAYER_RECT_SIZE / 2.0f, PLAYER_RECT_SIZE / 2.0f},
@@ -171,6 +179,7 @@ int main(int argc, char** argv) {
 
 	GameState state = {}; // create inital state
 	state.player = {SCREEN_WIDTH / 2 - PLAYER_RECT_SIZE / 2, SCREEN_HEIGHT / 2 - PLAYER_RECT_SIZE / 2};
+	state.carolMode = false;
 
 	state.assets = loadAssets();
 
