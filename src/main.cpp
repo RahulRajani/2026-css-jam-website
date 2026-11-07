@@ -430,6 +430,7 @@ void mainLoop(void* data) {
         SetShaderValue(state->assets.crtShader, GetShaderLocation(state->assets.crtShader, "resolution"), crtRes, SHADER_UNIFORM_VEC2);
 
         BeginShaderMode(state->assets.crtShader); {
+			menuLoop(state);
             DrawTexturePro(
                 state->screenTexture.texture,
                 (Rectangle){0, 0, (float)state->screenTexture.texture.width, (float)-state->screenTexture.texture.height},
@@ -502,6 +503,7 @@ int main(int argc, char** argv) {
     state.selectedCharacter = 0;
     state.selectAnim = 0.0f;
     state.assets = loadAssets();
+	state.gameControl=0;
 
     state.lightingMap = LightingMap(SCREEN_WIDTH, SCREEN_HEIGHT);
     for (int y = 58; y < 166; ++y) {
