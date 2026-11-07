@@ -24,6 +24,7 @@ struct GameAssets {
 	Shader crtShader;
 
 	Texture players[2];
+	Music bgm;
 };
 
 struct GameState {
@@ -64,8 +65,17 @@ Vector2 getGameMousePos() {
 
 // main update loop - add stuff here
 void mainLoop(void* data) {
-	GameState* state = (GameState*)data;
+    GameState* state = (GameState*)data;
 
+    if (IsAudioDeviceReady()) {
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || GetKeyPressed() != 0) {
+            if (!IsMusicStreamPlaying(state->assets.bgm)) {
+                PlayMusicStream(state->assets.bgm);
+            }
+        }
+    }
+
+    UpdateMusicStream(state->assets.bgm);
 	float deltaTime = GetFrameTime();
 
 	Vector2 gameMousePos = getGameMousePos();
@@ -159,6 +169,11 @@ GameAssets loadAssets() {
 	assets.players[0] = LoadTexture("assets/player_jamie.png");
 	assets.players[1] = LoadTexture("assets/player_carol.png");
 
+	assets.bgm = LoadMusicStream("assets/oooscary.mp3"); //Change Music
+    assets.bgm.looping = true;
+    SetMusicVolume(assets.bgm, 0.7f); 
+    PlayMusicStream(assets.bgm);
+
 	return assets;
 }
 
@@ -168,6 +183,8 @@ void unloadAssets(GameAssets& assets) {
 	UnloadTexture(assets.players[0]);
 	UnloadTexture(assets.players[1]);
 
+	UnloadMusicStream(assets.bgm);
+
 	assets = {};
 }
 
@@ -176,6 +193,7 @@ int main(int argc, char** argv) {
 	SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 
 	InitWindow(1280, 720, "game"); // change title
+	InitAudioDevice();
 
 	GameState state = {}; // create inital state
 	state.player = {SCREEN_WIDTH / 2 - PLAYER_RECT_SIZE / 2, SCREEN_HEIGHT / 2 - PLAYER_RECT_SIZE / 2};
@@ -198,6 +216,7 @@ int main(int argc, char** argv) {
 
 	unloadAssets(state.assets);
 
+	CloseAudioDevice();
 	CloseWindow();
 
 	return 0;
