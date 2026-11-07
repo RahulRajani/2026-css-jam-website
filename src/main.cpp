@@ -6,6 +6,7 @@
 #include "lighting.h"
 #include "Map.h"
 #include "animated_sprite.h"
+
 #include <cstdint>
 #include <vector>
 #include <cmath>
@@ -15,7 +16,6 @@
 #include <thread>
 #include <mutex>
 #include <chrono>
-
 #define SCREEN_WIDTH 240
 #define SCREEN_HEIGHT 240
 
@@ -24,8 +24,14 @@
 #define PLAYER_ACCELERATION 15
 #define PLAYER_LIGHT_SIZE 100
 
+// World size, in tiles. 120 x 120 tiles of 16px = 1920 x 1920 world pixels,
+// about 8 screens wide. Raise MAP_*_TILES for a bigger world.
+#define MAP_WIDTH_TILES 120
+#define MAP_HEIGHT_TILES 120
+#define TILE_SIZE 16
+
 enum ScreenState {
-	SCREEN_MENU,
+    SCREEN_MENU,
     SCREEN_SELECT,
     SCREEN_DIALOGUE,
     SCREEN_GAME,
@@ -73,6 +79,7 @@ struct GameState {
     Player player;
     Chronos chronos;
     TileMap islandMap;
+    Vector2 mapOrigin = {0.0f, 0.0f}; // world position of the map's top-left corner
     LightingMap lightingMap;
     Collectible testItem;
     Exit testExit;
@@ -127,7 +134,7 @@ Vector2 getGameMousePos() {
 
 //UI Functions:
 void drawTitle(const char* title){
-	int titleFontSize=30;
+	int titleFontSize=40;
 	int titleWidth=MeasureText(title,titleFontSize);
 	DrawText(title,(SCREEN_WIDTH-titleWidth)/2,20,titleFontSize,DARKGRAY);
 }
@@ -153,14 +160,14 @@ void menuLoop(void *data){
 	bool playHovered = CheckCollisionPointRec(mousePos, playButton);
     bool creditsHovered = CheckCollisionPointRec(mousePos, creditsButton);
 
-    if (playHovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        state->currentScreen=SCREEN_SELECT;
+	if (playHovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+		state->currentScreen = SCREEN_SELECT;
     }
 	if (creditsHovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         // Trigger transition to credits state
     }
 
-	drawTitle("The Last Loop");
+	drawTitle("Game Name");
 	draw_button("Play",playButton,playHovered);
 	draw_button("Credits",creditsButton,creditsHovered);
 }
@@ -349,9 +356,60 @@ void dialogueScreen(GameState* state) {
     }
 }
 
-void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
-    const Rectangle temporaryWall = {140.0f, 58.0f, 4.0f, 108.0f};
+// The playable area (the whole tile map) in world coordinates.
+Rectangle getWorldBounds(const GameState* state) {
+    return {
+        state->mapOrigin.x,
+        state->mapOrigin.y,
+        (float)(state->islandMap.GetWidth() * state->islandMap.GetWorldTileSize()),
+        (float)(state->islandMap.GetHeight() * state->islandMap.GetWorldTileSize())
+    };
+}
 
+// Keeps the player inside the map and stops them dead against the edge.
+void clampPlayerToWorld(GameState* state) {
+    const Rectangle bounds = getWorldBounds(state);
+    const float half = PLAYER_RECT_SIZE * 0.5f;
+    Player& p = state->player;
+
+    if (p.x < bounds.x + half)                { p.x = bounds.x + half;                p.velx = 0.0f; }
+    if (p.x > bounds.x + bounds.width - half) { p.x = bounds.x + bounds.width - half; p.velx = 0.0f; }
+    if (p.y < bounds.y + half)                { p.y = bounds.y + half;                p.vely = 0.0f; }
+    if (p.y > bounds.y + bounds.height - half){ p.y = bounds.y + bounds.height - half;p.vely = 0.0f; }
+}
+
+// Builds a big irregular island in the middle of the map. The coastline
+// radius wobbles with the angle so it isn't a perfect circle.
+void generateIsland(TileMap& map) {
+    const int centreX = map.GetWidth() / 2;
+    const int centreY = map.GetHeight() / 2;
+    const float baseRadius = std::min(map.GetWidth(), map.GetHeight()) * 0.32f;
+
+    map.Fill(14); // shallow water
+
+    for (int y = 0; y < map.GetHeight(); ++y) {
+        for (int x = 0; x < map.GetWidth(); ++x) {
+            const float dx = (float)(x - centreX);
+            const float dy = (float)(y - centreY);
+            const float distance = std::sqrt(dx * dx + dy * dy);
+            const float angle = std::atan2(dy, dx);
+
+            const float wobble = 1.0f
+                + 0.10f * std::sin(angle * 3.0f + 1.3f)
+                + 0.06f * std::sin(angle * 5.0f + 4.1f)
+                + 0.04f * std::sin(angle * 9.0f + 2.2f);
+            const float shoreRadius = baseRadius * wobble;
+
+            if (distance <= shoreRadius) {
+                map.SetTile(x, y, 5 + (x + y) % 3);        // grass variants
+            } else if (distance <= shoreRadius + 2.5f) {
+                map.SetTile(x, y, (x + y) % 3);            // sand variants
+            }
+        }
+    }
+}
+
+void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
     if (state->gameOver && IsKeyPressed(KEY_R)) {
         state->currentLoop = 1;
         state->timeRemaining = 60.0f;
@@ -411,9 +469,11 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         updateChronos(state->chronos, deltaTime, state->chronosDangerous);
     }
 
+    // The camera keeps the player at the centre of the screen, and mousePos is
+    // in screen space, so the aim angle is measured from the screen centre.
     float playerMouseAngle = std::atan2(
-        mousePos.y - state->player.y,
-        mousePos.x - state->player.x
+        mousePos.y - SCREEN_HEIGHT / 2.0f,
+        mousePos.x - SCREEN_WIDTH / 2.0f
     );
 
     if (!state->gameOver && !state->victory) {
@@ -433,35 +493,10 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
             PLAYER_ACCELERATION * deltaTime
         );
 
-        const float halfPlayer = PLAYER_RECT_SIZE * 0.5f;
-        const float nextX = std::clamp(
-            state->player.x + state->player.velx * deltaTime,
-            halfPlayer, SCREEN_WIDTH - halfPlayer
-        );
-        const float nextY = std::clamp(
-            state->player.y + state->player.vely * deltaTime,
-            halfPlayer, SCREEN_HEIGHT - halfPlayer
-        );
+        state->player.x += state->player.velx * deltaTime;
+        state->player.y += state->player.vely * deltaTime;
 
-        const Rectangle nextXBounds = {
-            nextX - halfPlayer, state->player.y - halfPlayer,
-            PLAYER_RECT_SIZE, PLAYER_RECT_SIZE
-        };
-        if (!CheckCollisionRecs(nextXBounds, temporaryWall)) {
-            state->player.x = nextX;
-        } else {
-            state->player.velx = 0.0f;
-        }
-
-        const Rectangle nextYBounds = {
-            state->player.x - halfPlayer, nextY - halfPlayer,
-            PLAYER_RECT_SIZE, PLAYER_RECT_SIZE
-        };
-        if (!CheckCollisionRecs(nextYBounds, temporaryWall)) {
-            state->player.y = nextY;
-        } else {
-            state->player.vely = 0.0f;
-        }
+        clampPlayerToWorld(state);
     }
 
     if (!state->gameOver && !state->victory && state->chronosHitCooldown <= 0.0f) {
@@ -492,8 +527,7 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
                 state->player.y += pushY * 30.0f;
                 state->player.velx = pushX * 80.0f;
                 state->player.vely = pushY * 80.0f;
-                state->player.x = std::clamp(state->player.x, 8.0f, SCREEN_WIDTH - 8.0f);
-                state->player.y = std::clamp(state->player.y, 8.0f, SCREEN_HEIGHT - 8.0f);
+                clampPlayerToWorld(state);
                 state->playerHitFlash = 0.25f;
                 state->playerShakeTimer = 0.35f;
             }
@@ -529,10 +563,31 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         }
     }
 
-    ClearBackground(Color{20, 20, 24, 255});
-    state->islandMap.Draw({0.0f, 0.0f}, false);
+    // Camera: its target is the player and its offset is the screen centre, so
+    // the player never moves on screen, the world scrolls past instead.
+    // Rounding the target keeps pixel art on whole pixels (no shimmering).
+    Camera2D camera = {};
+    camera.offset = { SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f };
+    camera.target = { std::round(state->player.x), std::round(state->player.y) };
+    camera.rotation = 0.0f;
+    camera.zoom = 1.0f;
 
-    DrawRectangleRec(temporaryWall, DARKGRAY);
+    // The part of the world currently on screen, used to skip off-screen tiles.
+    const Rectangle view = {
+        camera.target.x - camera.offset.x,
+        camera.target.y - camera.offset.y,
+        (float)SCREEN_WIDTH,
+        (float)SCREEN_HEIGHT
+    };
+
+    ClearBackground(Color{20, 20, 24, 255});
+
+    BeginMode2D(camera);
+
+    state->islandMap.DrawView(view, state->mapOrigin, false);
+
+    // Temporary occlusion-test wall; replace with the map's obstacle data later.
+    DrawRectangle(140, 58, 4, 108, DARKGRAY);
 
     Color chronosColor = DARKGRAY;
     if (state->chronosDangerous &&
@@ -572,30 +627,35 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
     DrawTexturePro(
         state->assets.players[state->selectedCharacter],
         {0, 0, (float)PLAYER_RECT_SIZE, (float)PLAYER_RECT_SIZE},
-        {state->player.x + shakeX, state->player.y + shakeY,
+        {camera.target.x + shakeX, camera.target.y + shakeY,
             (float)PLAYER_RECT_SIZE, (float)PLAYER_RECT_SIZE},
         {PLAYER_RECT_SIZE / 2.0f, PLAYER_RECT_SIZE / 2.0f},
         playerMouseAngle * RAD2DEG,
         state->playerHitFlash > 0.0f ? ORANGE : WHITE
     );
 
+    EndMode2D();
+
+    // LightingMap works in map-local coordinates (0,0 = the map's top-left
+    // corner), so subtract mapOrigin from every world position we give it.
+    // It draws in screen space, so this call stays outside BeginMode2D.
+    const int originX = (int)state->mapOrigin.x;
+    const int originY = (int)state->mapOrigin.y;
+
     const std::vector<LightSource> lightSources{
         LightSource{
-            static_cast<int>(state->player.x),
-            static_cast<int>(state->player.y),
+            (int)camera.target.x - originX,
+            (int)camera.target.y - originY,
             PLAYER_LIGHT_SIZE / 2
         }
     };
     state->lightingMap.calcAndDrawLights(
-        lightSources, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT
+        lightSources,
+        (int)view.x - originX, (int)view.y - originY,   // top-left of the screen, map-local
+        SCREEN_WIDTH, SCREEN_HEIGHT
     );
-    DrawText(
-        state->testItem.collected ? "Item: 1/1" : "Item: 0/1",
-        8,
-        8,
-        10,
-        RAYWHITE
-    );
+    // Item and exit live in the world, so they go through the camera too.
+    BeginMode2D(camera);
 
     if (!state->testItem.collected) {
         DrawRectangle(
@@ -613,6 +673,17 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         12,
         12,
         state->testExit.unlocked ? GREEN : DARKGRAY
+    );
+
+    EndMode2D();
+
+    // HUD (screen space)
+    DrawText(
+        state->testItem.collected ? "Item: 1/1" : "Item: 0/1",
+        8,
+        8,
+        10,
+        RAYWHITE
     );
 
     if (!state->gameOver && !state->victory) {
@@ -920,29 +991,32 @@ int main(int argc, char** argv) {
     state.testExit.position = {200.0f, 80.0f};
     state.testExit.unlocked = false;
 
-    state.islandMap = TileMap(15, 15, 16, 16);
+    state.islandMap = TileMap(MAP_WIDTH_TILES, MAP_HEIGHT_TILES, TILE_SIZE, TILE_SIZE);
     state.islandMap.LoadTileset(
         "assets/TIles/Pixel_Beach_Island_Tileset_v1/spritesheet.png"
     );
-    state.islandMap.Fill(14); // shallow water
-    for (int y = 0; y < state.islandMap.GetHeight(); ++y) {
-        for (int x = 0; x < state.islandMap.GetWidth(); ++x) {
-            const int dx = x - state.islandMap.GetWidth() / 2;
-            const int dy = y - state.islandMap.GetHeight() / 2;
-            const int distanceSquared = dx * dx + dy * dy;
+    generateIsland(state.islandMap);
 
-            if (distanceSquared <= 25) {
-                state.islandMap.SetTile(x, y, 5 + (x + y) % 3); // grass variants
-            } else if (distanceSquared <= 36) {
-                state.islandMap.SetTile(x, y, (x + y) % 3); // sand variants
-            }
-        }
-    }
+    // Place the map so its centre tile sits where the old 15x15 island's centre
+    // was, (120, 120). The spawn point, item, exit, Chronos waypoints and test
+    // wall all keep their coordinates. The map just extends into negative
+    // coordinates, which is fine in a camera-driven world.
+    state.mapOrigin = {
+        SCREEN_WIDTH / 2.0f - (MAP_WIDTH_TILES / 2) * TILE_SIZE - TILE_SIZE / 2.0f,
+        SCREEN_HEIGHT / 2.0f - (MAP_HEIGHT_TILES / 2) * TILE_SIZE - TILE_SIZE / 2.0f
+    };
 
-    state.lightingMap = LightingMap(SCREEN_WIDTH, SCREEN_HEIGHT);
+    // One lighting cell per world pixel, covering the whole map. Obstacles use
+    // map-local coordinates, so the test wall (world 140,58 to 143,165) is
+    // shifted by mapOrigin.
+    state.lightingMap = LightingMap(
+        MAP_WIDTH_TILES * TILE_SIZE, MAP_HEIGHT_TILES * TILE_SIZE
+    );
     for (int y = 58; y < 166; ++y) {
         for (int x = 140; x < 144; ++x) {
-            state.lightingMap.setObstacle(x, y, 1);
+            state.lightingMap.setObstacle(
+                x - (int)state.mapOrigin.x, y - (int)state.mapOrigin.y, 1
+            );
         }
     }
 
