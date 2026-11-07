@@ -31,6 +31,11 @@ struct GameState {
 	Player player;
 	bool carolMode;
 
+	int currentLoop = 1;
+	float timeRemaining = 60.0f;
+	bool gameOver = false;
+	bool chronosDangerous = false;
+
 	GameAssets assets;
 
 	RenderTexture2D screenTexture;
@@ -78,6 +83,33 @@ void mainLoop(void* data) {
     UpdateMusicStream(state->assets.bgm);
 	float deltaTime = GetFrameTime();
 
+	if (!state->gameOver && state->timeRemaining > 0.0f) {
+    state->timeRemaining -= deltaTime;
+
+    	if (state->timeRemaining < 0.0f) {
+       		state->timeRemaining = 0.0f;
+    	}
+
+		if (state->timeRemaining <= 0.0f) {
+    		if (state->currentLoop < 3) {
+        		state->currentLoop++;
+        		state->timeRemaining = 60.0f;
+
+        		state->player.x = SCREEN_WIDTH / 2 - PLAYER_RECT_SIZE / 2;
+        		state->player.y = SCREEN_HEIGHT / 2 - PLAYER_RECT_SIZE / 2;
+        		state->player.velx = 0.0f;
+        		state->player.vely = 0.0f;
+    		} else {
+        		state->gameOver = true;
+    		}
+		}
+	}
+
+	state->chronosDangerous =
+    !state->gameOver &&
+    state->timeRemaining > 0.0f &&
+    state->timeRemaining <= 15.0f;
+
 	Vector2 gameMousePos = getGameMousePos();
 	
 	// player movement
@@ -87,22 +119,25 @@ void mainLoop(void* data) {
 		gameMousePos.x - state->player.x
 	);
 
-	float accelerateX = IsKeyDown(KEY_D) - IsKeyDown(KEY_A);
-	float accelerateY = IsKeyDown(KEY_S) - IsKeyDown(KEY_W);
+	if (!state->gameOver) {
+		float accelerateX = IsKeyDown(KEY_D) - IsKeyDown(KEY_A);
+    	float accelerateY = IsKeyDown(KEY_S) - IsKeyDown(KEY_W);
 
-	state->player.velx = std::lerp(
-		state->player.velx, PLAYER_VELOCITY_MAX * accelerateX, PLAYER_ACCELERATION * deltaTime
-	);
-	state->player.vely = std::lerp(
-		state->player.vely, PLAYER_VELOCITY_MAX * accelerateY, PLAYER_ACCELERATION * deltaTime
-	);
+   		state->player.velx = std::lerp(
+        	state->player.velx, PLAYER_VELOCITY_MAX * accelerateX,
+        	PLAYER_ACCELERATION * deltaTime
+    	);
+    	state->player.vely = std::lerp(
+        	state->player.vely, PLAYER_VELOCITY_MAX * accelerateY,
+        	PLAYER_ACCELERATION * deltaTime
+    	);
 
-	state->player.x += state->player.velx * deltaTime;
-	state->player.y += state->player.vely * deltaTime;
+    	state->player.x += state->player.velx * deltaTime;
+    	state->player.y += state->player.vely * deltaTime;
 
-	// player mode switch
-	if (IsKeyPressed(KEY_SPACE)) {
-		state->carolMode = !state->carolMode;
+    	if (IsKeyPressed(KEY_SPACE)) {
+        	state->carolMode = !state->carolMode;
+    	}
 	}
 
 	BeginTextureMode(state->screenTexture);
