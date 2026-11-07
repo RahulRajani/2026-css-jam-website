@@ -1,0 +1,8 @@
+build/*
+buildweb/*
+web/*.js
+web/*.zip
+web/*.data
+.vscode/*
+compile_commands.json
+emsdk/
