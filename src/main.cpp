@@ -338,6 +338,8 @@ void dialogueScreen(GameState* state) {
 }
 
 void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
+    const Rectangle temporaryWall = {140.0f, 58.0f, 4.0f, 108.0f};
+
     if (state->gameOver && IsKeyPressed(KEY_R)) {
         state->currentLoop = 1;
         state->timeRemaining = 60.0f;
@@ -419,8 +421,35 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
             PLAYER_ACCELERATION * deltaTime
         );
 
-        state->player.x += state->player.velx * deltaTime;
-        state->player.y += state->player.vely * deltaTime;
+        const float halfPlayer = PLAYER_RECT_SIZE * 0.5f;
+        const float nextX = std::clamp(
+            state->player.x + state->player.velx * deltaTime,
+            halfPlayer, SCREEN_WIDTH - halfPlayer
+        );
+        const float nextY = std::clamp(
+            state->player.y + state->player.vely * deltaTime,
+            halfPlayer, SCREEN_HEIGHT - halfPlayer
+        );
+
+        const Rectangle nextXBounds = {
+            nextX - halfPlayer, state->player.y - halfPlayer,
+            PLAYER_RECT_SIZE, PLAYER_RECT_SIZE
+        };
+        if (!CheckCollisionRecs(nextXBounds, temporaryWall)) {
+            state->player.x = nextX;
+        } else {
+            state->player.velx = 0.0f;
+        }
+
+        const Rectangle nextYBounds = {
+            state->player.x - halfPlayer, nextY - halfPlayer,
+            PLAYER_RECT_SIZE, PLAYER_RECT_SIZE
+        };
+        if (!CheckCollisionRecs(nextYBounds, temporaryWall)) {
+            state->player.y = nextY;
+        } else {
+            state->player.vely = 0.0f;
+        }
     }
 
     if (!state->gameOver && !state->victory && state->chronosHitCooldown <= 0.0f) {
@@ -486,7 +515,7 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
     state->islandMap.Draw({0.0f, 0.0f}, false);
 
     // Temporary occlusion-test wall; replace with the map's obstacle data later.
-    DrawRectangle(140, 58, 4, 108, DARKGRAY);
+    DrawRectangleRec(temporaryWall, DARKGRAY);
 
     Color chronosColor = DARKGRAY;
 
