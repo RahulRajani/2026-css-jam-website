@@ -3,7 +3,6 @@
 #endif
 
 #include <raylib.h>
-#include "chronos.h"
 
 #include <cstdint>
 #include <vector>
@@ -34,22 +33,11 @@ struct GameAssets {
 };
 
 struct GameState {
-<<<<<<< Updated upstream
-	Player player;
-	Chronos chronos;
-	bool carolMode;
-=======
 	ScreenState currentScreen;
 	int selectedCharacter;
 	float selectAnim;
 
 	Player player; 
->>>>>>> Stashed changes
-
-	int currentLoop = 1;
-	float timeRemaining = 60.0f;
-	bool gameOver = false;
-	bool chronosDangerous = false;
 
 	GameAssets assets;
 
@@ -264,69 +252,8 @@ void mainLoop(void* data) {
 
     UpdateMusicStream(state->assets.bgm);
 
-<<<<<<< Updated upstream
-	if (!state->gameOver && state->timeRemaining > 0.0f) {
-    state->timeRemaining -= deltaTime;
-
-    	if (state->timeRemaining < 0.0f) {
-       		state->timeRemaining = 0.0f;
-    	}
-
-		if (state->timeRemaining <= 0.0f) {
-    		if (state->currentLoop < 3) {
-        		state->currentLoop++;
-        		state->timeRemaining = 60.0f;
-
-        		state->player.x = SCREEN_WIDTH / 2 - PLAYER_RECT_SIZE / 2;
-        		state->player.y = SCREEN_HEIGHT / 2 - PLAYER_RECT_SIZE / 2;
-        		state->player.velx = 0.0f;
-        		state->player.vely = 0.0f;
-    		} else {
-        		state->gameOver = true;
-    		}
-		}
-	}
-
-	state->chronosDangerous =
-    !state->gameOver &&
-    state->timeRemaining > 0.0f &&
-    state->timeRemaining <= 15.0f;
-
-	updateChronos(state->chronos, deltaTime, state->chronosDangerous);
-
-	Vector2 gameMousePos = getGameMousePos();
-	
-	// player movement
-
-	float playerMouseAngle = std::atan2(
-		gameMousePos.y - state->player.y,
-		gameMousePos.x - state->player.x
-	);
-
-	if (!state->gameOver) {
-		float accelerateX = IsKeyDown(KEY_D) - IsKeyDown(KEY_A);
-    	float accelerateY = IsKeyDown(KEY_S) - IsKeyDown(KEY_W);
-
-   		state->player.velx = std::lerp(
-        	state->player.velx, PLAYER_VELOCITY_MAX * accelerateX,
-        	PLAYER_ACCELERATION * deltaTime
-    	);
-    	state->player.vely = std::lerp(
-        	state->player.vely, PLAYER_VELOCITY_MAX * accelerateY,
-        	PLAYER_ACCELERATION * deltaTime
-    	);
-
-    	state->player.x += state->player.velx * deltaTime;
-    	state->player.y += state->player.vely * deltaTime;
-
-    	if (IsKeyPressed(KEY_SPACE)) {
-        	state->carolMode = !state->carolMode;
-    	}
-	}
-=======
     float deltaTime = GetFrameTime();
     Vector2 gameMousePos = getGameMousePos();
->>>>>>> Stashed changes
 
 	BeginTextureMode(state->screenTexture);
         if (state->currentScreen == SCREEN_SELECT) {
@@ -336,32 +263,8 @@ void mainLoop(void* data) {
         }
     EndTextureMode();
 
-<<<<<<< Updated upstream
-		Color chronosColor = DARKGRAY;
-
-		if (state->chronosDangerous &&
-			static_cast<int>(GetTime() * 4.0) % 2 == 0) {
-			chronosColor = RED;
-		}
-
-		DrawCircleV(
-			state->chronos.position,
-			8.0f,
-			chronosColor
-		);
-
-		DrawTexturePro(
-			state->assets.players[state->carolMode ? 1 : 0],
-			{0, 0, PLAYER_RECT_SIZE, PLAYER_RECT_SIZE},
-			{state->player.x - PLAYER_RECT_SIZE / 2.0f, state->player.y - PLAYER_RECT_SIZE / 2.0f, PLAYER_RECT_SIZE, PLAYER_RECT_SIZE},
-			{PLAYER_RECT_SIZE / 2.0f, PLAYER_RECT_SIZE / 2.0f},
-			playerMouseAngle * RAD2DEG, {255, 255, 255, 255}
-		);
-	EndTextureMode();
-=======
     BeginDrawing();
         ClearBackground(BLACK);
->>>>>>> Stashed changes
 
         int scrWidth = GetScreenWidth();
         int scrHeight = GetScreenHeight();
@@ -394,11 +297,7 @@ void mainLoop(void* data) {
 GameAssets loadAssets() {
 	GameAssets assets;
 
-	#ifdef __EMSCRIPTEN__
 	assets.crtShader = LoadShader(0, "assets/crt.frag");
-	#else
-	assets.crtShader = LoadShader(0, "assets/crt_desktop.frag");
-	#endif
 
 	float crtCurve = 1.2f;
 	float crtVignette = 0.4f;
