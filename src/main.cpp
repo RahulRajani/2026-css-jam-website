@@ -20,6 +20,7 @@
 #define PLAYER_LIGHT_SIZE 100
 
 enum ScreenState {
+	SCREEN_MENU,
     SCREEN_SELECT,
     SCREEN_GAME
 };
@@ -132,7 +133,7 @@ void menuLoop(void *data){
     bool creditsHovered = CheckCollisionPointRec(vMouse, creditsButton);
 
     if (playHovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        state->gameControl=1;
+        state->currentScreen=SCREEN_SELECT;
     }
 	if (creditsHovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         // Trigger transition to credits state
@@ -412,7 +413,9 @@ void mainLoop(void* data) {
             selectScreen(state, gameMousePos);
         } else if (state->currentScreen == SCREEN_GAME) {
             gameScreen(state, gameMousePos, deltaTime);
-        }
+        }else if (state->currentScreen==SCREEN_MENU){
+			menuLoop(state);
+		}
     EndTextureMode();
 
     BeginDrawing();
@@ -430,7 +433,6 @@ void mainLoop(void* data) {
         SetShaderValue(state->assets.crtShader, GetShaderLocation(state->assets.crtShader, "resolution"), crtRes, SHADER_UNIFORM_VEC2);
 
         BeginShaderMode(state->assets.crtShader); {
-			menuLoop(state);
             DrawTexturePro(
                 state->screenTexture.texture,
                 (Rectangle){0, 0, (float)state->screenTexture.texture.width, (float)-state->screenTexture.texture.height},
@@ -499,7 +501,7 @@ int main(int argc, char** argv) {
 
     GameState state = {};
     state.player = {SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f};
-    state.currentScreen = SCREEN_SELECT;
+    state.currentScreen = SCREEN_MENU;
     state.selectedCharacter = 0;
     state.selectAnim = 0.0f;
     state.assets = loadAssets();
