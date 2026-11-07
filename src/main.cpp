@@ -8,58 +8,54 @@
 #include <vector>
 #include <cmath>
 
+#define PLAYER_RECT_SIZE 50
+#define PLAYER_VELOCITY_MAX 300
+#define PLAYER_ACCELERATION 15
+
+struct Player {
+	float x, y;
+	float velx, vely;
+};
+
 struct GameState {
-	// add stuff
-	
-	// e.g.
-	std::vector<Vector2> rectanglesPos;
+	Player player;
 };
 
 // main update loop - add stuff here
 void mainLoop(void* data) {
 	GameState* state = (GameState*)data;
 
-	// add randomly positioned rectangles to array
-	for (int i = 0; i < 10; i++) {
-		state->rectanglesPos.push_back(
-			Vector2{
-				(float)GetRandomValue(0, GetRenderWidth()),
-				(float)GetRandomValue(0, GetRenderHeight())
-			}
-		);
-	}
+	float deltaTime = GetFrameTime();
+
+	Vector2 mousePos = GetMousePosition();
+	
+	float playerMouseAngle = std::atan2(
+		mousePos.y - state->player.y,
+		mousePos.x - state->player.x
+	);
+
+	float accelerateX = IsKeyDown(KEY_D) - IsKeyDown(KEY_A);
+	float accelerateY = IsKeyDown(KEY_S) - IsKeyDown(KEY_W);
+
+	state->player.velx = std::lerp(
+		state->player.velx, PLAYER_VELOCITY_MAX * accelerateX, PLAYER_ACCELERATION * deltaTime
+	);
+	state->player.vely = std::lerp(
+		state->player.vely, PLAYER_VELOCITY_MAX * accelerateY, PLAYER_ACCELERATION * deltaTime
+	);
+
+	state->player.x += state->player.velx * deltaTime;
+	state->player.y += state->player.vely * deltaTime;
 
 	BeginDrawing();
 
 	ClearBackground(Color{255, 255, 255, 255});
 
-	// draw random rectangles
-	for (const Vector2& vec : state->rectanglesPos) {
-		uint8_t greyscale = 70 + (int)vec.x % 60;
-
-		DrawRectanglePro(
-			Rectangle{vec.x, vec.y, 40, 40},
-			Vector2{20, 20},
-			GetTime() * 75.0f * (std::fmod((float)vec.x * 0.02f, 0.5f) + 0.5f),
-			Color{greyscale, greyscale, greyscale, 150}
-		);
-	}
-
-	// rotating + scaling text on a sine wave
-	float fontSize = 42.0f * (std::sin(GetTime()) + 2) / 2.0f;
-
-	const char* text = "C++ game on the web :)";
-	Vector2 textSize = MeasureTextEx(GetFontDefault(), text, fontSize, fontSize / 8.0f);
-
-	DrawTextPro(
-		GetFontDefault(),
-		text,
-		Vector2{GetRenderWidth() / 2.0f, GetRenderHeight() / 2.0f},
-		Vector2{textSize.x / 2, textSize.y / 2},
-		GetTime() * 45.0f,
-		fontSize,
-		fontSize / 8.0f,
-		Color{0, 0, 0, 255}
+	DrawRectanglePro(
+		Rectangle{state->player.x, state->player.y, PLAYER_RECT_SIZE, PLAYER_RECT_SIZE},
+		Vector2{PLAYER_RECT_SIZE / 2.0f, PLAYER_RECT_SIZE / 2.0f},
+		playerMouseAngle * RAD2DEG,
+		Color{140, 140, 140, 255}
 	);
 
 	DrawFPS(10, 10);
@@ -73,6 +69,7 @@ int main(int argc, char** argv) {
 	InitWindow(1280, 720, "game"); // change title
 
 	GameState state = {}; // create inital state
+	state.player = {400, 400};
 
 	#ifdef __EMSCRIPTEN__
 	emscripten_set_main_loop_arg(mainLoop, &state, 0, true);
