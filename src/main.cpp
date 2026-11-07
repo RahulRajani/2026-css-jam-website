@@ -5,6 +5,7 @@
 #include <raylib.h>
 #include "chronos.h"
 #include "lighting.h"
+#include "Map.h"
 
 #include <cstdint>
 #include <vector>
