@@ -22,6 +22,7 @@
 
 enum ScreenState {
     SCREEN_SELECT,
+    SCREEN_DIALOGUE,
     SCREEN_GAME
 };
 
@@ -41,6 +42,7 @@ struct GameState {
     ScreenState currentScreen;
     int selectedCharacter;
     float selectAnim;
+    int dialogueIndex = 0;
 
     Player player;
     Chronos chronos;
@@ -98,7 +100,8 @@ void selectScreen(GameState* state, Vector2 mousePos) {
     if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) state->selectedCharacter = 1;
 
     if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
-        state->currentScreen = SCREEN_GAME;
+        state->dialogueIndex = 0;
+        state->currentScreen = SCREEN_DIALOGUE;
     }
 
     Rectangle jamieHit = { 20.0f, 44.0f, 96.0f, 106.0f };
@@ -106,14 +109,22 @@ void selectScreen(GameState* state, Vector2 mousePos) {
 
     if (CheckCollisionPointRec(mousePos, jamieHit)) {
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            if (state->selectedCharacter == 0) state->currentScreen = SCREEN_GAME;
-            else state->selectedCharacter = 0;
+            if (state->selectedCharacter == 0) {
+                state->dialogueIndex = 0;
+                state->currentScreen = SCREEN_DIALOGUE;
+            } else {
+                state->selectedCharacter = 0;
+            }
         }
     }
     if (CheckCollisionPointRec(mousePos, carolHit)) {
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            if (state->selectedCharacter == 1) state->currentScreen = SCREEN_GAME;
-            else state->selectedCharacter = 1;
+            if (state->selectedCharacter == 1) {
+                state->dialogueIndex = 0;
+                state->currentScreen = SCREEN_DIALOGUE;
+            } else {
+                state->selectedCharacter = 1;
+            }
         }
     }
 
@@ -207,7 +218,7 @@ void selectScreen(GameState* state, Vector2 mousePos) {
         DrawText("Ability", 26, (int)descY + 18, 8, Color{ 0x23, 0x7b, 0x52, 255 });
         DrawText(": Radar ping detects clues", 66, (int)descY + 18, 8, Color{ 165, 190, 175, 255 });
         DrawText("Trait", 26, (int)descY + 30, 8, Color{ 0x33, 0x65, 0x02, 255 });
-        DrawText(" Lower Field of vision", 66, (int)descY + 30, 8, Color{ 120, 145, 130, 255 });
+        DrawText(": Lower field of vision", 66, (int)descY + 30, 8, Color{ 120, 145, 130, 255 });
     } else {
         DrawText("2nd Year Uni Student", 26 + (int)jitterX, (int)descY + 6, 8, Color{ 150, 215, 110, 255 });
         DrawText("Ability", 26, (int)descY + 18, 8, Color{ 0x23, 0x7b, 0x52, 255 });
@@ -218,6 +229,44 @@ void selectScreen(GameState* state, Vector2 mousePos) {
 
     DrawText("Left/Right", 12, 222, 7, Color{ 0x23, 0x7b, 0x52, 200 });
     DrawText("[ENTER] Start", 140, 222, 7, Color{ 170, 220, 140, 255 });
+}
+
+void dialogueScreen(GameState* state) {
+    const char* lines[][2] = {
+        {
+            "I awoke on a strange island",
+            "after a plane crash."
+        },
+        {
+            "I should figure out where I am,",
+            "this place looks creepy..."
+        }
+    };
+    const int totalLines = 2;
+
+    if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        state->dialogueIndex++;
+        if (state->dialogueIndex >= totalLines) {
+            state->currentScreen = SCREEN_GAME;
+            return;
+        }
+    }
+
+    ClearBackground(BLACK);
+
+    Rectangle box = { 12.0f, 164.0f, SCREEN_WIDTH - 24.0f, 64.0f };
+    DrawRectangleRec(box, Color{ 10, 14, 11, 255 });
+    DrawRectangleLinesEx(box, 1.0f, Color{ 0x23, 0x7b, 0x52, 255 });
+
+    const char* speaker = (state->selectedCharacter == 0) ? "JAMIE" : "CAROL";
+    DrawText(speaker, (int)box.x + 8, (int)box.y + 6, 8, Color{ 0x33, 0x65, 0x02, 255 });
+
+    DrawText(lines[state->dialogueIndex][0], (int)box.x + 8, (int)box.y + 20, 8, RAYWHITE);
+    DrawText(lines[state->dialogueIndex][1], (int)box.x + 8, (int)box.y + 32, 8, RAYWHITE);
+
+    if (static_cast<int>(GetTime() * 2.0) % 2 == 0) {
+        DrawText("[ENTER]", (int)(box.x + box.width - 42), (int)(box.y + box.height - 12), 7, Color{ 0x23, 0x7b, 0x52, 255 });
+    }
 }
 
 void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
@@ -273,6 +322,7 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
     }
 
     ClearBackground(Color{20, 20, 24, 255});
+
     // Temporary occlusion-test wall; replace with the map's obstacle data later.
     DrawRectangle(140, 58, 4, 108, DARKGRAY);
 
@@ -311,11 +361,9 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
 
 void mainLoop(void* data) {
     GameState* state = (GameState*)data;
-    if (IsAudioDeviceReady()) {
+    if (IsAudioDeviceReady() && !IsMusicStreamPlaying(state->assets.bgm)) {
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || GetKeyPressed() != 0) {
-            if (!IsMusicStreamPlaying(state->assets.bgm)) {
-                PlayMusicStream(state->assets.bgm);
-            }
+            PlayMusicStream(state->assets.bgm);
         }
     }
 
@@ -327,6 +375,8 @@ void mainLoop(void* data) {
     BeginTextureMode(state->screenTexture);
         if (state->currentScreen == SCREEN_SELECT) {
             selectScreen(state, gameMousePos);
+        } else if (state->currentScreen == SCREEN_DIALOGUE) {
+            dialogueScreen(state);
         } else if (state->currentScreen == SCREEN_GAME) {
             gameScreen(state, gameMousePos, deltaTime);
         }
@@ -389,7 +439,7 @@ GameAssets loadAssets() {
 
     assets.bgm = LoadMusicStream("assets/oooscary.mp3");
     assets.bgm.looping = true;
-    SetMusicVolume(assets.bgm, 0.7f); 
+    SetMusicVolume(assets.bgm, 0.7f);
     PlayMusicStream(assets.bgm);
 
     return assets;
