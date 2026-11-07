@@ -15,6 +15,8 @@
 #define PLAYER_VELOCITY_MAX 100
 #define PLAYER_ACCELERATION 15
 
+#define PLAYER_LIGHT_SIZE 100
+
 struct Player {
 	float x, y;
 	float velx, vely;
@@ -106,15 +108,29 @@ void mainLoop(void* data) {
 	}
 
 	BeginTextureMode(state->screenTexture);
-		ClearBackground(Color{255, 255, 255, 255});
+		ClearBackground(Color{0, 0, 0, 255});
 
 		DrawTexturePro(
 			state->assets.players[state->carolMode ? 1 : 0],
-			{0, 0, PLAYER_RECT_SIZE, PLAYER_RECT_SIZE},
-			{state->player.x - PLAYER_RECT_SIZE / 2.0f, state->player.y - PLAYER_RECT_SIZE / 2.0f, PLAYER_RECT_SIZE, PLAYER_RECT_SIZE},
+			{0, 0, 16, 16},
+			{state->player.x, state->player.y, PLAYER_RECT_SIZE, PLAYER_RECT_SIZE},
 			{PLAYER_RECT_SIZE / 2.0f, PLAYER_RECT_SIZE / 2.0f},
 			playerMouseAngle * RAD2DEG, {255, 255, 255, 255}
 		);
+
+		for (int x = 0; x < PLAYER_LIGHT_SIZE; x++) {
+			for (int y = 0; y < PLAYER_LIGHT_SIZE; y++) {
+				int plrX = x - PLAYER_LIGHT_SIZE / 2;
+				int plrY = y - PLAYER_LIGHT_SIZE / 2;
+
+				int scrX = state->player.x + plrX;
+				int scrY = state->player.y + plrY;
+				
+				float str = (1.0f - sqrt(plrX * plrX + plrY * plrY) / (PLAYER_LIGHT_SIZE / 2.0f));
+
+				DrawPixel(scrX, scrY, {246, 154, 84, (uint8_t)(255 * 0.5f * str)});
+			}
+		}
 	EndTextureMode();
 
 	BeginDrawing();
