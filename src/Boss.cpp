@@ -29,7 +29,7 @@ static const char* CONFRONT[] = {
     "So. You found the keys I hid, little mortal.",
     "I am Chronos. Before the sun, before the sea, there was time, and I was its master.",
     "Your kind treats my gift as endless, and burns it on glowing screens and idle hours.",
-    "So I gave you these islands and their loops, so every second would finally matter.",
+    "I gave you two islands, each with two loops, so every second would matter.",
 };
 static const int CONFRONT_COUNT = 4;
 
