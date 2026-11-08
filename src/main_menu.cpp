@@ -230,7 +230,7 @@ void creditsScreen(GameState* state, Vector2 mousePos) {
     DrawSlantedQuad(17.0f, 50.0f, 2.0f, 110.0f, -6.0f, Color{ 150, 80, 200, 255 });
     struct Credit { const char* role; const char* name; };
     static const Credit CREDITS[] = {
-        { "Lead Programmer & Artist", "Jamie Brian"       },
+        { "Lead Programmer & Artist", "Jamie Brain"       },
         { "Story Design",             "Rahul Rajani"      },
         { "Logic Design",             "Carol Wang"        },
         { "Environment Design",       "Samarth Bhatnagar" },
