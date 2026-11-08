@@ -74,6 +74,10 @@ void selectScreen(GameState* state, Vector2 mousePos) {
         state->currentScreen = SCREEN_DIALOGUE;
     }
 
+    if (IsKeyPressed(KEY_ESCAPE)) {
+        state->currentScreen = SCREEN_MENU;
+    }
+
     Rectangle jamieHit = { 20.0f, 44.0f, 96.0f, 106.0f };
     Rectangle carolHit = { 124.0f, 44.0f, 96.0f, 106.0f };
 
@@ -163,7 +167,7 @@ void selectScreen(GameState* state, Vector2 mousePos) {
 
         const char* name = (i == 0) ? "JAMIE" : "CAROL";
         Color nameColor = selected ? Color{ 200, 240, 180, 255 } : Color{ 85, 115, 95, 255 };
-        
+
         if (selected) {
             DrawSlantedQuad(x + 8.0f, y + h - 26.0f, w - 16.0f, 16.0f, -6.0f, Color{ 0x33, 0x65, 0x02, 255 });
             int nw = MeasureText(name, 10);
@@ -857,6 +861,8 @@ void mainLoop(void* data) {
     BeginTextureMode(state->screenTexture);
         if (state->currentScreen == SCREEN_MENU) {
             menuScreen(state, gameMousePos);
+        } else if (state->currentScreen == SCREEN_CREDITS) {
+            creditsScreen(state, gameMousePos);
         } else if (state->currentScreen == SCREEN_SELECT) {
             selectScreen(state, gameMousePos);
         } else if (state->currentScreen == SCREEN_DIALOGUE) {
