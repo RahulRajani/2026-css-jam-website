@@ -228,16 +228,22 @@ void creditsScreen(GameState* state, Vector2 mousePos) {
     DrawSlantedQuad(14.0f, 50.0f, 282.0f, 110.0f, -6.0f, Color{ 20, 12, 30, 255 });
     DrawSlantedQuad(12.0f, 50.0f, 5.0f, 110.0f, -6.0f, Color{ 212, 175, 55, 255 });
     DrawSlantedQuad(17.0f, 50.0f, 2.0f, 110.0f, -6.0f, Color{ 150, 80, 200, 255 });
+    struct Credit { const char* role; const char* name; };
+    static const Credit CREDITS[] = {
+        { "Lead Programmer & Artist", "Jamie Brian"       },
+        { "Story Design",             "Rahul Rajani"      },
+        { "Logic Design",             "Carol Wang"        },
+        { "Environment Design",       "Samarth Bhatnagar" },
+        { "UI Design",                "Roger D'Souza"     },
+        { "Musical Composition",      "Harrison Lee"      },
+    };
 
-    DrawText("Game Design", 26, 62, 8, Color{ 212, 175, 55, 255 });
-    DrawText("Your Name", 26, 74, 8, Color{ 190, 170, 200, 255 });
-
-    DrawText("Programming", 26, 92, 8, Color{ 212, 175, 55, 255 });
-    DrawText("Your Name", 26, 104, 8, Color{ 190, 170, 200, 255 });
-
-    DrawText("Art and Audio", 26, 122, 8, Color{ 212, 175, 55, 255 });
-    DrawText("Your Name", 26, 134, 8, Color{ 190, 170, 200, 255 });
-
+    int cy = 50;
+    for (const Credit& c : CREDITS) {
+        DrawText(c.role, 26, cy,     7, Color{ 212, 175, 55, 255 });
+        DrawText(c.name, 26, cy + 9, 7, Color{ 190, 170, 200, 255 });
+        cy += 19;
+    }
     drawMenuButton("BACK", BTN_X, 180.0f, BTN_W, BTN_H, true, jitterX, 0.0f);
 
     DrawText("[ENTER] Back", 140, 222, 7, Color{ 220, 190, 120, 255 });

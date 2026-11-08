@@ -10,7 +10,9 @@
 #include "util.h"
 #include "game.h"   // GameState, structs (+ defines.h: screen size, ScreenState)
 #include "island2_layout.h"   // island 2 layout
+#include "island3_layout.h"   // island 3 layout (used by the minimap)
 #include "TilePalette.h"    // TileID::*
+#include "wreck_props.h"    // trust.png plane-wreck props
 
 // Title + credits screens live in main_menu.cpp
 void menuScreen(GameState* state, Vector2 mousePos);
@@ -61,6 +63,10 @@ void selectScreen(GameState* state, Vector2 mousePos) {
         state->currentScreen = SCREEN_DIALOGUE;
     }
 
+    if (IsKeyPressed(KEY_ESCAPE)) {
+        state->currentScreen = SCREEN_MENU;
+    }
+
     Rectangle jamieHit = { 20.0f, 44.0f, 96.0f, 106.0f };
     Rectangle carolHit = { 124.0f, 44.0f, 96.0f, 106.0f };
 
@@ -89,45 +95,41 @@ void selectScreen(GameState* state, Vector2 mousePos) {
     float jitterX = (std::sin(t * 35.0f) > 0.92f) ? 2.0f : 0.0f;
     float jitterY = (std::cos(t * 27.0f) < -0.94f) ? -1.0f : 0.0f;
 
-    ClearBackground(Color{ 8, 12, 9, 255 });
+    drawMenuBackdrop(t, jitterX);
 
-    DrawSlantedQuad(-35.0f, 0.0f, 55.0f, (float)SCREEN_HEIGHT, 55.0f, Color{ 14, 24, 16, 255 });
-    DrawSlantedQuad(115.0f, 0.0f, 75.0f, (float)SCREEN_HEIGHT, 48.0f, Color{ 16, 28, 20, 255 });
-
-    float scanY = std::fmod(t * 36.0f, (float)SCREEN_HEIGHT);
-    DrawRectangle(0, (int)scanY, SCREEN_WIDTH, 2, Color{ 0x23, 0x7b, 0x52, 45 });
-
-    DrawSlantedQuad(12.0f + jitterX, 14.0f, 220.0f, 22.0f, -15.0f, Color{ 0x33, 0x65, 0x02, 90 });
-    DrawSlantedQuad(10.0f, 12.0f, 220.0f, 22.0f, -15.0f, Color{ 16, 24, 19, 255 });
-    DrawSlantedQuad(12.0f, 12.0f, 6.0f, 22.0f, -15.0f, Color{ 0x33, 0x65, 0x02, 255 });
-    DrawSlantedQuad(18.0f, 12.0f, 2.0f, 22.0f, -15.0f, Color{ 0x23, 0x7b, 0x52, 255 });
-    DrawText("Select your Character", 28 + (int)jitterX, 17, 10, Color{ 190, 230, 170, 255 });
-    DrawText("Fugit Hora", 180, 18, 8, Color{ 0x23, 0x7b, 0x52, 255 });
+    // Header panel
+    DrawSlantedQuad(12.0f + jitterX, 14.0f, 220.0f, 22.0f, -15.0f, Color{ 150, 80, 200, 90 });
+    DrawSlantedQuad(10.0f, 12.0f, 220.0f, 22.0f, -15.0f, Color{ 24, 14, 36, 255 });
+    DrawSlantedQuad(12.0f, 12.0f, 6.0f, 22.0f, -15.0f, Color{ 212, 175, 55, 255 });
+    DrawSlantedQuad(18.0f, 12.0f, 2.0f, 22.0f, -15.0f, Color{ 150, 80, 200, 255 });
+    DrawText("Select your Character", 28 + (int)jitterX, 17, 10, Color{ 240, 210, 130, 255 });
 
     for (int i = 0; i < 2; i++) {
         bool selected = (state->selectedCharacter == i);
         float slant = (i == 0) ? -14.0f : -8.0f;
         float x = ((i == 0) ? 22.0f : 126.0f) + (selected ? jitterX : 0.0f);
-        float y = (selected ? 41.0f : 47.0f) + (selected ? jitterY : 0.0f); 
+        float y = (selected ? 41.0f : 47.0f) + (selected ? jitterY : 0.0f);
         float w = 92.0f;
         float h = selected ? 109.0f : 99.0f;
 
         if (selected) {
-            DrawSlantedQuad(x + 5.0f, y + 4.0f, w, h, slant - 2.0f, Color{ 0x33, 0x65, 0x02, 110 });
-            DrawSlantedQuad(x - 3.0f, y - 2.0f, w, h, slant + 1.0f, Color{ 0x23, 0x7b, 0x52, 85 });
+            DrawSlantedQuad(x + 5.0f, y + 4.0f, w, h, slant - 2.0f, Color{ 150, 80, 200, 110 });
+            DrawSlantedQuad(x - 3.0f, y - 2.0f, w, h, slant + 1.0f, Color{ 212, 175, 55, 85 });
         } else {
-            DrawSlantedQuad(x + 3.0f, y + 4.0f, w, h, slant, Color{ 3, 6, 4, 210 });
+            DrawSlantedQuad(x + 3.0f, y + 4.0f, w, h, slant, Color{ 5, 3, 8, 210 });
         }
 
-        Color cardColor = selected ? Color{ 20, 32, 24, 255 } : Color{ 12, 17, 14, 255 };
+        Color cardColor = selected ? Color{ 40, 24, 58, 255 } : Color{ 18, 11, 26, 255 };
         DrawSlantedQuad(x, y, w, h, slant, cardColor);
 
-        Color accentColor = selected ? Color{ 0x33, 0x65, 0x02, 255 } : Color{ 0x23, 0x7b, 0x52, 120 };
+        Color accentColor = selected ? Color{ 150, 80, 200, 255 } : Color{ 96, 60, 130, 120 };
         DrawSlantedQuad(x + 1.0f, y, w - 2.0f, 4.0f, slant, accentColor);
-        DrawSlantedQuad(x, y + h - 2.0f, w, 2.0f, slant, selected ? Color{ 0x23, 0x7b, 0x52, 255 } : Color{ 25, 40, 30, 255 });
+        DrawSlantedQuad(x, y + h - 2.0f, w, 2.0f, slant,
+                        selected ? Color{ 212, 175, 55, 255 } : Color{ 34, 22, 46, 255 });
 
         const char* numTag = (i == 0) ? "01" : "02";
-        DrawText(numTag, (int)(x + 14.0f), (int)(y + 8.0f), 10, selected ? Color{ 0x23, 0x7b, 0x52, 255 } : Color{ 40, 60, 48, 255 });
+        DrawText(numTag, (int)(x + 14.0f), (int)(y + 8.0f), 10,
+                 selected ? Color{ 212, 175, 55, 255 } : Color{ 60, 44, 80, 255 });
 
         float spriteSize = selected ? 38.0f : 28.0f;
         float spriteY = y + (selected ? 22.0f : 24.0f);
@@ -138,7 +140,7 @@ void selectScreen(GameState* state, Vector2 mousePos) {
                 state->assets.players[i],
                 { 0, 0, (float)PLAYER_RECT_SIZE, (float)PLAYER_RECT_SIZE },
                 { spriteX + 2.0f, spriteY, spriteSize, spriteSize },
-                { 0, 0 }, 0.0f, Color{ 0x33, 0x65, 0x02, 160 }
+                { 0, 0 }, 0.0f, Color{ 150, 80, 200, 160 }
             );
         }
 
@@ -146,14 +148,14 @@ void selectScreen(GameState* state, Vector2 mousePos) {
             state->assets.players[i],
             { 0, 0, (float)PLAYER_RECT_SIZE, (float)PLAYER_RECT_SIZE },
             { spriteX, spriteY, spriteSize, spriteSize },
-            { 0, 0 }, 0.0f, selected ? WHITE : Color{ 110, 140, 120, 190 }
+            { 0, 0 }, 0.0f, selected ? WHITE : Color{ 130, 110, 150, 190 }
         );
 
         const char* name = (i == 0) ? "JAMIE" : "CAROL";
         Color nameColor = selected ? Color{ 200, 240, 180, 255 } : Color{ 85, 115, 95, 255 };
-        
+
         if (selected) {
-            DrawSlantedQuad(x + 8.0f, y + h - 26.0f, w - 16.0f, 16.0f, -6.0f, Color{ 0x33, 0x65, 0x02, 255 });
+            DrawSlantedQuad(x + 8.0f, y + h - 26.0f, w - 16.0f, 16.0f, -6.0f, Color{ 150, 80, 200, 255 });
             int nw = MeasureText(name, 10);
             DrawText(name, (int)(x + (w - nw) / 2.0f), (int)(y + h - 23.0f), 10, nameColor);
         } else {
@@ -165,27 +167,27 @@ void selectScreen(GameState* state, Vector2 mousePos) {
     float descY = 162.0f;
     float descH = 50.0f;
 
-    DrawSlantedQuad(18.0f - jitterX, descY + 4.0f, 210.0f, descH, -13.0f, Color{ 0x33, 0x65, 0x02, 80 });
-    DrawSlantedQuad(14.0f, descY, 212.0f, descH, -11.0f, Color{ 13, 20, 15, 255 });
-    DrawSlantedQuad(12.0f, descY, 5.0f, descH, -11.0f, Color{ 0x33, 0x65, 0x02, 255 });
-    DrawSlantedQuad(17.0f, descY, 2.0f, descH, -11.0f, Color{ 0x23, 0x7b, 0x52, 255 });
+    DrawSlantedQuad(18.0f - jitterX, descY + 4.0f, 210.0f, descH, -13.0f, Color{ 150, 80, 200, 80 });
+    DrawSlantedQuad(14.0f, descY, 212.0f, descH, -11.0f, Color{ 20, 12, 30, 255 });
+    DrawSlantedQuad(12.0f, descY, 5.0f, descH, -11.0f, Color{ 212, 175, 55, 255 });
+    DrawSlantedQuad(17.0f, descY, 2.0f, descH, -11.0f, Color{ 150, 80, 200, 255 });
 
     if (state->selectedCharacter == 0) {
-        DrawText("2nd Year Uni Student", 26 + (int)jitterX, (int)descY + 6, 8, Color{ 150, 215, 110, 255 });
-        DrawText("Ability", 26, (int)descY + 18, 8, Color{ 0x23, 0x7b, 0x52, 255 });
-        DrawText(": Radar ping detects clues", 66, (int)descY + 18, 8, Color{ 165, 190, 175, 255 });
-        DrawText("Trait", 26, (int)descY + 30, 8, Color{ 0x33, 0x65, 0x02, 255 });
-        DrawText(": Lower field of vision", 66, (int)descY + 30, 8, Color{ 120, 145, 130, 255 });
+        DrawText("2nd Year Uni Student", 26 + (int)jitterX, (int)descY + 6, 8, Color{ 240, 210, 130, 255 });
+        DrawText("Ability", 26, (int)descY + 18, 8, Color{ 212, 175, 55, 255 });
+        DrawText(": Radar ping detects clues", 66, (int)descY + 18, 8, Color{ 190, 170, 200, 255 });
+        DrawText("Trait", 26, (int)descY + 30, 8, Color{ 150, 80, 200, 255 });
+        DrawText(": Lower field of vision", 66, (int)descY + 30, 8, Color{ 150, 130, 170, 255 });
     } else {
-        DrawText("2nd Year Uni Student", 26 + (int)jitterX, (int)descY + 6, 8, Color{ 150, 215, 110, 255 });
-        DrawText("Ability", 26, (int)descY + 18, 8, Color{ 0x23, 0x7b, 0x52, 255 });
-        DrawText(": Able to sprint for period", 66, (int)descY + 18, 8, Color{ 165, 190, 175, 255 });
-        DrawText("Trait", 26, (int)descY + 30, 8, Color{ 0x33, 0x65, 0x02, 255 });
-        DrawText(": Lower regular speed", 66, (int)descY + 30, 8, Color{ 120, 145, 130, 255 });
+        DrawText("2nd Year Uni Student", 26 + (int)jitterX, (int)descY + 6, 8, Color{ 240, 210, 130, 255 });
+        DrawText("Ability", 26, (int)descY + 18, 8, Color{ 212, 175, 55, 255 });
+        DrawText(": Able to sprint for period", 66, (int)descY + 18, 8, Color{ 190, 170, 200, 255 });
+        DrawText("Trait", 26, (int)descY + 30, 8, Color{ 150, 80, 200, 255 });
+        DrawText(": Lower regular speed", 66, (int)descY + 30, 8, Color{ 150, 130, 170, 255 });
     }
 
-    DrawText("Left/Right", 12, 222, 7, Color{ 0x23, 0x7b, 0x52, 200 });
-    DrawText("[ENTER] Start", 140, 222, 7, Color{ 170, 220, 140, 255 });
+    DrawText("Left/Right", 12, 222, 7, Color{ 212, 175, 55, 200 });
+    DrawText("[ENTER] Start", 140, 222, 7, Color{ 220, 190, 120, 255 });
 }
 
 void dialogueScreen(GameState* state) {
@@ -302,6 +304,58 @@ void loadIslandMap(TileMap& map) {
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// Island 1 art + collision
+// ---------------------------------------------------------------------------
+// The real tiled island (island_layout.cpp + assets/island_tiles.png).
+// Define HAVE_ISLAND_ATLAS (top of this file, or add_compile_definitions in CMake)
+// once the atlas version of island_layout.cpp, island_atlas*.h and
+// assets/island_tiles.png are all in the project.
+#ifdef HAVE_ISLAND_ATLAS
+bool loadIslandTiles(TileMap& map);
+#endif
+
+// Layout characters you cannot walk through on island 1.
+// Collision reads ISLAND_LAYOUT directly, so it keeps working whichever
+// tileset (placeholder colours or the atlas) the map is drawn with.
+static bool isSolidIsland1Char(char c) {
+    switch (c) {
+        case '~': case ',':   // deep / shallow water
+        case 'c':             // cliffs
+        case 'M':             // mountain rock
+        case 'W':             // stone walls
+        case 'k':             // rocks
+        case 'i':             // pillars
+        case 'B':             // boat
+        case 'x':             // plane wreck
+            return true;
+        default:
+            return false;
+    }
+}
+
+// True if a small box centred on world (cx, cy) overlaps a solid island-1 tile
+// or the temporary occlusion-test wall.
+static bool island1Blocked(const GameState* state, float cx, float cy) {
+    // Same small box as island 2 so narrow paths remain passable.
+    const float half = 5.0f;
+    for (int sy = -1; sy <= 1; sy += 2) {
+        for (int sx = -1; sx <= 1; sx += 2) {
+            const int tx = (int)std::floor((cx + sx * half - state->mapOrigin.x) / TILE_SIZE);
+            const int ty = (int)std::floor((cy + sy * half - state->mapOrigin.y) / TILE_SIZE);
+            if (tx < 0 || ty < 0 || tx >= ISLAND_WIDTH || ty >= ISLAND_HEIGHT) return true;
+            if (isSolidIsland1Char(ISLAND_LAYOUT[ty][tx])) return true;
+        }
+    }
+
+    const Rectangle playerBounds = {
+        cx - half, cy - half, half * 2.0f, half * 2.0f
+    };
+    const Rectangle testWall = {140.0f, 58.0f, 4.0f, 108.0f};
+    return CheckCollisionRecs(playerBounds, testWall);
+}
+
 // ---------------------------------------------------------------------------
 // Island 2 (reached through the portal)
 // ---------------------------------------------------------------------------
@@ -390,45 +444,6 @@ static bool island2Blocked(float cx, float cy) {
         }
     }
     return false;
-}
-
-static bool island1SolidTile(int tileId) {
-    switch (tileId) {
-        case 0:  // deep water
-        case 1:  // shallow water
-        case 3:  // cliff
-        case 8:  // rock
-        case 9:  // mountain
-        case 12: // stone wall
-        case 17: // pillar
-        case 20: // wreckage
-            return true;
-        default:
-            return false;
-    }
-}
-
-static bool island1Blocked(const GameState* state, float cx, float cy) {
-    // Match island 2's smaller collision box so narrow paths remain passable.
-    const float half = 5.0f;
-    const int tileSize = state->islandMap.GetWorldTileSize();
-    for (int sy = -1; sy <= 1; sy += 2) {
-        for (int sx = -1; sx <= 1; sx += 2) {
-            const int tx = (int)std::floor(
-                (cx + sx * half - state->mapOrigin.x) / tileSize
-            );
-            const int ty = (int)std::floor(
-                (cy + sy * half - state->mapOrigin.y) / tileSize
-            );
-            if (island1SolidTile(state->islandMap.GetTile(tx, ty))) return true;
-        }
-    }
-
-    const Rectangle playerBounds = {
-        cx - half, cy - half, half * 2.0f, half * 2.0f
-    };
-    const Rectangle testWall = {140.0f, 58.0f, 4.0f, 108.0f};
-    return CheckCollisionRecs(playerBounds, testWall);
 }
 
 static bool playerBlocked(const GameState* state, float cx, float cy) {
@@ -574,6 +589,86 @@ static void respawnForLoop(GameState* state) {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Minimap: one pixel per tile, built from the SAME layout the main map uses.
+// [M] toggles between the corner minimap and the full-screen map.
+// ---------------------------------------------------------------------------
+static Texture2D gMiniTex = {};
+static bool gBigMap = false;
+
+static Color miniTileColour(int island, int x, int y) {
+    if (island == 1) {
+        const int id = terrainTileId(ISLAND_LAYOUT[y][x]);
+        return id < 0 ? BLACK : TERRAIN[id].colour;
+    }
+    const int id = (island == 2) ? Island2TileAt(x, y) : Island3TileAt(x, y);
+    const int n = (int)(sizeof(ISLAND2_COLOURS) / sizeof(ISLAND2_COLOURS[0]));
+    if (id < 0 || id >= n) return BLACK;
+    return ISLAND2_COLOURS[id];
+}
+
+// Call after the island's map has been built.
+static void buildMinimap(const GameState* state) {
+    if (gMiniTex.id != 0) UnloadTexture(gMiniTex);
+    const int w = state->islandMap.GetWidth();
+    const int h = state->islandMap.GetHeight();
+    Image img = GenImageColor(w, h, BLACK);
+    for (int y = 0; y < h; ++y)
+        for (int x = 0; x < w; ++x)
+            ImageDrawPixel(&img, x, y, miniTileColour(state->currentIsland, x, y));
+    gMiniTex = LoadTextureFromImage(img);
+    UnloadImage(img);
+    SetTextureFilter(gMiniTex, TEXTURE_FILTER_POINT);
+}
+
+static void drawMinimap(const GameState* state) {
+    if (gMiniTex.id == 0) return;
+    const float mw = (float)gMiniTex.width, mh = (float)gMiniTex.height;
+
+    float scale, ox, oy;
+    if (gBigMap) {                                  // full-screen map
+        scale = std::min((SCREEN_WIDTH - 20.0f) / mw, (SCREEN_HEIGHT - 20.0f) / mh);
+        ox = (SCREEN_WIDTH - mw * scale) / 2.0f;
+        oy = (SCREEN_HEIGHT - mh * scale) / 2.0f;
+        DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Color{ 0, 0, 0, 200 });
+    } else {                                        // corner minimap
+        scale = 56.0f / mw;
+        ox = SCREEN_WIDTH - mw * scale - 6.0f;
+        oy = 6.0f;
+    }
+
+    DrawRectangle((int)ox - 2, (int)oy - 2, (int)(mw * scale) + 4, (int)(mh * scale) + 4, BLACK);
+    DrawTexturePro(gMiniTex, { 0, 0, mw, mh }, { ox, oy, mw * scale, mh * scale },
+                   { 0, 0 }, 0.0f, WHITE);
+    DrawRectangleLines((int)ox - 2, (int)oy - 2, (int)(mw * scale) + 4, (int)(mh * scale) + 4,
+                       Color{ 0x23, 0x7b, 0x52, 255 });
+
+    auto toMap = [&](Vector2 world) {
+        return Vector2{ ox + (world.x - state->mapOrigin.x) / TILE_SIZE * scale,
+                        oy + (world.y - state->mapOrigin.y) / TILE_SIZE * scale };
+    };
+
+    const bool island1 = state->currentIsland == 1;
+    const Collectible& key = island1 ? state->portalKey : state->exitKey;
+    const Exit& exitObj = island1 ? state->portalExit : state->finalExit;
+    const bool shadowGone = island1 ? state->shadowDefeated : state->yellowShadowDefeated;
+    const Vector2 shadowPos = island1 ? state->patroller.position : state->yellowShadow.position;
+    const float dot = gBigMap ? 2.0f : 1.0f;
+
+    if (!shadowGone)
+        DrawCircleV(toMap(shadowPos), dot, ORANGE);
+    if (!key.collected)
+        DrawCircleV(toMap(key.position), dot, GOLD);
+    DrawCircleV(toMap(exitObj.position), dot, exitObj.unlocked ? GREEN : GRAY);
+    DrawCircleV(toMap(state->chronos.position), dot, RED);
+
+    if (static_cast<int>(GetTime() * 4.0) % 2 == 0)  // player blinks
+        DrawCircleV(toMap({ state->player.x, state->player.y }), gBigMap ? 2.5f : 1.5f, WHITE);
+
+    if (!gBigMap) DrawText("[M] map", (int)ox, (int)(oy + mh * scale + 4), 6, Color{ 0x23, 0x7b, 0x52, 255 });
+    else          DrawText("[M] close", 8, SCREEN_HEIGHT - 12, 7, Color{ 0x23, 0x7b, 0x52, 255 });
+}
+
 // Swaps the world over to island 2 and starts a fresh set of loops there.
 static void enterIsland2(GameState* state) {
     TraceLog(LOG_WARNING, "I2 item tile=%d solid=%d | exit tile=%d solid=%d",
@@ -603,6 +698,7 @@ static void enterIsland2(GameState* state) {
 
     state->yellowShadowDefeated = false;
 
+    buildMinimap(state);
     respawnForLoop(state);
 }
 
@@ -677,9 +773,10 @@ static bool clueIntroSeen = false;
 static int  cluePage = -1;   // -1 = not showing
 
 void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
+    if (IsKeyPressed(KEY_M)) gBigMap = !gBigMap;
     if (IsKeyPressed(KEY_R) && !state->gameOver) { startBoss(state); return; }
     if (cluePage >= 0) {
-        deltaTime = 0.0f;
+        deltaTime = 0.0f;   // freezes timer, movement and enemies
         if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
             if (++cluePage >= 3) cluePage = -1;
         }
@@ -973,6 +1070,17 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
 
     state->islandMap.DrawView(view, state->mapOrigin, false);
 
+    // Plane-wreck props (trust.png), drawn on top of the ground, under the actors.
+    if (state->currentIsland == 1) {
+        drawCrashSite(
+            state->mapOrigin.x + ISLAND_SPAWN_X * TILE_SIZE + TILE_SIZE / 2.0f,
+            state->mapOrigin.y + ISLAND_SPAWN_Y * TILE_SIZE + TILE_SIZE / 2.0f
+        );
+    } else if (state->currentIsland == 2) {
+        const Vector2 c = islandTileCentre(I2_SPAWN_X, I2_SPAWN_Y);
+        drawCrashSiteSmall(c.x, c.y);
+    }
+
     // Temporary occlusion-test wall; replace with the map's obstacle data later.
     if (state->currentIsland == 1) {
         DrawRectangle(140, 58, 4, 108, DARKGRAY);
@@ -999,12 +1107,6 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
             0.0f,
             flicker ? Color{255, 220, 90, 255} : Color{210, 170, 40, 255}
         );
-    }
-
-    Color chronosColor = DARKGRAY;
-    if (state->chronosDangerous &&
-        static_cast<int>(GetTime() * 4.0) % 2 == 0) {
-        chronosColor = RED;
     }
 
     state->assets.chronosSprite.updateFrame(deltaTime);
@@ -1211,16 +1313,16 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
 
     int secondsLeft = static_cast<int>(std::ceil(state->timeRemaining));
     std::string timerText = "Time: " + std::to_string(secondsLeft);
-    
+
     bool isUrgent = (state->timeRemaining <= 5.0f && state->timeRemaining > 0.0f);
-    
-    int fontSize = isUrgent ? 14 : 10;          
-    Color textColor = isUrgent ? RED : RAYWHITE; 
-    
+
+    int fontSize = isUrgent ? 14 : 10;
+    Color textColor = isUrgent ? RED : RAYWHITE;
+
     int textWidth = MeasureText(timerText.c_str(), fontSize);
     int posX = (SCREEN_WIDTH - textWidth) / 2;
     int posY = 6;
-    
+
     if (isUrgent) {
         float t = (float)GetTime();
         posX += (int)(std::sin(t * 50.0f) * 3.0f);
@@ -1229,11 +1331,13 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         DrawText(timerText.c_str(), posX - 2, posY, fontSize, SKYBLUE);
         DrawText(timerText.c_str(), posX + 2, posY, fontSize, Color{255, 50, 50, 180});
     }
-    
+
     DrawText(timerText.c_str(), posX, posY, fontSize, textColor);
 
     std::string loopText = "Loop: " + std::to_string(state->currentLoop) + "/" +
         std::to_string(LOOPS_PER_ISLAND);
+    drawMinimap(state);
+
     DrawText(loopText.c_str(), 8, 22, 10, RAYWHITE);
     const char* const* loopGoals = state->currentIsland == 1
         ? ISLAND_1_LOOP_GOALS
@@ -1297,7 +1401,7 @@ void battleScreen(GameState* state, float deltaTime) {
     DrawText("TIME SHADOW", 136, 18, 8, RAYWHITE);
     const std::string attemptsText = "TRIES LEFT: " + std::to_string(state->battleAttemptsRemaining);
     DrawText(attemptsText.c_str(), 12, 18, 8, GOLD);
-    
+
     DrawRectangle(180, 38, 48, 48, Color{ 40, 10, 30, 255 });
     DrawRectangleLines(180, 38, 48, 48, RED);
     DrawText("SHADOW", 185, 58, 6, RED);
@@ -1306,7 +1410,7 @@ void battleScreen(GameState* state, float deltaTime) {
     DrawRectangleLines(10, SCREEN_HEIGHT - 65, 90, 22, RED);
     const char* charName = (state->selectedCharacter == 0) ? "JAMIE" : "CAROL";
     DrawText(charName, 16, SCREEN_HEIGHT - 58, 8, RAYWHITE);
-    
+
     if (state->assets.players[state->selectedCharacter].id != 0) {
         DrawTexturePro(
             state->assets.players[state->selectedCharacter],
@@ -1358,7 +1462,7 @@ void samarthDialogueScreen(GameState* state, float deltaTime) {
         "Chronos has trapped me and several other humans on this island",
         "Chronos has witnessed humans wasting time and resources",
         "Thus he has decided that humans shall spend all of eternity in a loop",
-        state->selectedCharacter == 0 
+        state->selectedCharacter == 0
             ? "You're our only hope, Jamie. Find the portal key and reach the next island."
             : "You're our only hope, Carol. Find the portal key and reach the next island."
     };
@@ -1403,6 +1507,27 @@ void samarthDialogueScreen(GameState* state, float deltaTime) {
     }
 
     ClearBackground(Color{ 10, 10, 15, 255 });
+
+    state->assets.samarthSprite.updateFrame(deltaTime);
+    DrawTexturePro(
+        state->assets.samarthSprite.getCurrentTexture(),
+        {
+            0, 0,
+            (float)state->assets.samarthSprite.getCurrentTexture().width,
+            (float)state->assets.samarthSprite.getCurrentTexture().height
+        },
+        {
+            40, 70,
+            (float)state->assets.samarthSprite.getCurrentTexture().width * 4,
+            (float)state->assets.samarthSprite.getCurrentTexture().height * 4
+        },
+        {
+            (float)state->assets.samarthSprite.getCurrentTexture().width * 2,
+            (float)state->assets.samarthSprite.getCurrentTexture().height * 2
+        },
+        0.0f,
+        {255, 255, 255, 255}
+    );
 
     // 1. Dialogue Box Background
     DrawRectangle(10, 145, SCREEN_WIDTH - 20, 85, Color{ 15, 15, 25, 240 });
@@ -1549,6 +1674,8 @@ GameAssets loadAssets() {
     assets.players[1] = LoadTexture("assets/player_carol.png");
     assets.shadowSprite = LoadTexture("assets/TIles/Character.png");
 
+    loadWreckProps("assets/trust.png");
+
     assets.bgm = LoadMusicStream("assets/AreaOne.mp3");
     assets.bgm.looping = true;
     SetMusicVolume(assets.bgm, 0.7f);
@@ -1568,12 +1695,37 @@ GameAssets loadAssets() {
         0.1f
     );
 
+    assets.cogSprite = AnimatedSprite(
+        {
+            "assets/cog-anim1.png",
+            "assets/cog-anim2.png",
+            "assets/cog-anim3.png",
+            "assets/cog-anim4.png",
+            "assets/cog-anim5.png",
+            "assets/cog-anim6.png"
+        },
+        0.1f
+    );
+
+    assets.samarthSprite = AnimatedSprite(
+        {
+            "assets/samarth-anim1.png",
+            "assets/samarth-anim2.png",
+            "assets/samarth-anim3.png",
+            "assets/samarth-anim4.png",
+            "assets/samarth-anim5.png",
+            "assets/samarth-anim6.png"
+        },
+        0.1f
+    );
+
     return assets;
 }
 
 void unloadAssets(GameAssets& assets) {
     UnloadShader(assets.crtShader);
 
+    unloadWreckProps();
     UnloadTexture(assets.players[0]);
     UnloadTexture(assets.players[1]);
     UnloadTexture(assets.shadowSprite);
@@ -1594,11 +1746,12 @@ int main(int argc, char** argv) {
     InitAudioDevice();
 
     GameState state = {};
+    state.currentIsland = 1;
     state.player = {SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f};
     state.portalKey.collected = false;
     state.exitKey.position = {0.0f, 0.0f};
     state.exitKey.collected = false;
-    
+
     // Initialize patroller shadow position & speed
     state.shadowDefeated = false;
 
@@ -1612,7 +1765,13 @@ int main(int argc, char** argv) {
     state.finalExit.unlocked = false;
 
     state.islandMap = TileMap(ISLAND_WIDTH, ISLAND_HEIGHT, TILE_SIZE, TILE_SIZE);
+#ifdef HAVE_ISLAND_ATLAS
+    if (!loadIslandTiles(state.islandMap)) {
+        loadIslandMap(state.islandMap);   // fallback: flat colours if the atlas is missing
+    }
+#else
     loadIslandMap(state.islandMap);
+#endif
 
     // Centre the spawn tile on world (120, 120). Item and exit positions are
     // converted from map tiles once this origin is known; other test objects
@@ -1626,6 +1785,8 @@ int main(int argc, char** argv) {
     state.patroller.position = island1TileCentre(&state, I1_SHADOW_X, I1_SHADOW_Y);
     state.portalKey.position = island1TileCentre(&state, I1_PORTAL_KEY_X, I1_PORTAL_KEY_Y);
     state.portalExit.position = island1TileCentre(&state, I1_PORTAL_X, I1_PORTAL_Y);
+
+    buildMinimap(&state);
 
     // One lighting cell per world pixel, covering the whole map. Obstacles use
     // map-local coordinates, so the test wall (world 140,58 to 143,165) is
@@ -1653,6 +1814,7 @@ int main(int argc, char** argv) {
     #endif
 
     UnloadRenderTexture(state.screenTexture);
+    if (gMiniTex.id != 0) UnloadTexture(gMiniTex);
 
     state.islandMap.Unload();
     unloadAssets(state.assets);
