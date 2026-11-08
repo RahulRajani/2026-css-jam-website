@@ -83,3 +83,5 @@ struct GameState {
 
 void menuScreen(GameState* state, Vector2 mousePos);
 void creditsScreen(GameState* state, Vector2 mousePos);
+
+void drawMenuBackdrop(float t, float jitterX);
