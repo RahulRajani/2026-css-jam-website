@@ -42,6 +42,7 @@ struct GameAssets {
 
     AnimatedSprite chronosSprite;
     AnimatedSprite cogSprite;
+    AnimatedSprite samarthSprite;
 };
 
 struct GameState {
@@ -120,3 +121,5 @@ struct GameState {
 // riddle.cpp
 void startRiddle(GameState* state);
 void riddleScreen(GameState* state, float deltaTime);
+
+void drawMenuBackdrop(float t, float jitterX);
