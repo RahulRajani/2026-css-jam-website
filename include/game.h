@@ -41,6 +41,7 @@ struct GameAssets {
 
     AnimatedSprite chronosSprite;
     AnimatedSprite cogSprite;
+    AnimatedSprite samarthSprite;
 };
 
 struct GameState {

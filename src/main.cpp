@@ -1135,6 +1135,27 @@ void samarthDialogueScreen(GameState* state, float deltaTime) {
 
     ClearBackground(Color{ 10, 10, 15, 255 });
 
+    state->assets.samarthSprite.updateFrame(deltaTime);
+    DrawTexturePro(
+        state->assets.samarthSprite.getCurrentTexture(),
+        {
+            0, 0,
+            (float)state->assets.samarthSprite.getCurrentTexture().width,
+            (float)state->assets.samarthSprite.getCurrentTexture().height
+        },
+        {
+            40, 70,
+            (float)state->assets.samarthSprite.getCurrentTexture().width * 4,
+            (float)state->assets.samarthSprite.getCurrentTexture().height * 4
+        },
+        {
+            (float)state->assets.samarthSprite.getCurrentTexture().width * 2,
+            (float)state->assets.samarthSprite.getCurrentTexture().height * 2
+        },
+        0.0f,
+        {255, 255, 255, 255}
+    );
+
     // 1. Dialogue Box Background
     DrawRectangle(10, 145, SCREEN_WIDTH - 20, 85, Color{ 15, 15, 25, 240 });
     DrawRectangleLines(10, 145, SCREEN_WIDTH - 20, 85, BLUE);
@@ -1293,6 +1314,30 @@ GameAssets loadAssets() {
             "assets/chronos-anim3.png",
             "assets/chronos-anim4.png",
             "assets/chronos-anim5.png"
+        },
+        0.1f
+    );
+
+    assets.cogSprite = AnimatedSprite(
+        {
+            "assets/cog-anim1.png",
+            "assets/cog-anim2.png",
+            "assets/cog-anim3.png",
+            "assets/cog-anim4.png",
+            "assets/cog-anim5.png",
+            "assets/cog-anim6.png"
+        },
+        0.1f
+    );
+
+    assets.samarthSprite = AnimatedSprite(
+        {
+            "assets/samarth-anim1.png",
+            "assets/samarth-anim2.png",
+            "assets/samarth-anim3.png",
+            "assets/samarth-anim4.png",
+            "assets/samarth-anim5.png",
+            "assets/samarth-anim6.png"
         },
         0.1f
     );
