@@ -1641,7 +1641,7 @@ void mainLoop(void* data) {
             );
         } EndShaderMode();
 
-        DrawFPS(10, 10);
+        // DrawFPS(10, 10);
     EndDrawing();
 }
 
