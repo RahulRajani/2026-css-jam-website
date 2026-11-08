@@ -1318,7 +1318,7 @@ int main(int argc, char** argv) {
     SetTraceLogLevel(LOG_WARNING);
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 
-    InitWindow(1280, 720, "game");
+    InitWindow(1280, 720, "THE LAST LOOP");
     InitAudioDevice();
 
     GameState state = {};
