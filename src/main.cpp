@@ -61,6 +61,10 @@ void selectScreen(GameState* state, Vector2 mousePos) {
         state->currentScreen = SCREEN_DIALOGUE;
     }
 
+    if (IsKeyPressed(KEY_ESCAPE)) {
+        state->currentScreen = SCREEN_MENU;
+    }
+
     Rectangle jamieHit = { 20.0f, 44.0f, 96.0f, 106.0f };
     Rectangle carolHit = { 124.0f, 44.0f, 96.0f, 106.0f };
 
@@ -89,45 +93,41 @@ void selectScreen(GameState* state, Vector2 mousePos) {
     float jitterX = (std::sin(t * 35.0f) > 0.92f) ? 2.0f : 0.0f;
     float jitterY = (std::cos(t * 27.0f) < -0.94f) ? -1.0f : 0.0f;
 
-    ClearBackground(Color{ 8, 12, 9, 255 });
+    drawMenuBackdrop(t, jitterX);
 
-    DrawSlantedQuad(-35.0f, 0.0f, 55.0f, (float)SCREEN_HEIGHT, 55.0f, Color{ 14, 24, 16, 255 });
-    DrawSlantedQuad(115.0f, 0.0f, 75.0f, (float)SCREEN_HEIGHT, 48.0f, Color{ 16, 28, 20, 255 });
-
-    float scanY = std::fmod(t * 36.0f, (float)SCREEN_HEIGHT);
-    DrawRectangle(0, (int)scanY, SCREEN_WIDTH, 2, Color{ 0x23, 0x7b, 0x52, 45 });
-
-    DrawSlantedQuad(12.0f + jitterX, 14.0f, 220.0f, 22.0f, -15.0f, Color{ 0x33, 0x65, 0x02, 90 });
-    DrawSlantedQuad(10.0f, 12.0f, 220.0f, 22.0f, -15.0f, Color{ 16, 24, 19, 255 });
-    DrawSlantedQuad(12.0f, 12.0f, 6.0f, 22.0f, -15.0f, Color{ 0x33, 0x65, 0x02, 255 });
-    DrawSlantedQuad(18.0f, 12.0f, 2.0f, 22.0f, -15.0f, Color{ 0x23, 0x7b, 0x52, 255 });
-    DrawText("Select your Character", 28 + (int)jitterX, 17, 10, Color{ 190, 230, 170, 255 });
-    DrawText("Fugit Hora", 180, 18, 8, Color{ 0x23, 0x7b, 0x52, 255 });
+    // Header panel
+    DrawSlantedQuad(12.0f + jitterX, 14.0f, 220.0f, 22.0f, -15.0f, Color{ 150, 80, 200, 90 });
+    DrawSlantedQuad(10.0f, 12.0f, 220.0f, 22.0f, -15.0f, Color{ 24, 14, 36, 255 });
+    DrawSlantedQuad(12.0f, 12.0f, 6.0f, 22.0f, -15.0f, Color{ 212, 175, 55, 255 });
+    DrawSlantedQuad(18.0f, 12.0f, 2.0f, 22.0f, -15.0f, Color{ 150, 80, 200, 255 });
+    DrawText("Select your Character", 28 + (int)jitterX, 17, 10, Color{ 240, 210, 130, 255 });
 
     for (int i = 0; i < 2; i++) {
         bool selected = (state->selectedCharacter == i);
         float slant = (i == 0) ? -14.0f : -8.0f;
         float x = ((i == 0) ? 22.0f : 126.0f) + (selected ? jitterX : 0.0f);
-        float y = (selected ? 41.0f : 47.0f) + (selected ? jitterY : 0.0f); 
+        float y = (selected ? 41.0f : 47.0f) + (selected ? jitterY : 0.0f);
         float w = 92.0f;
         float h = selected ? 109.0f : 99.0f;
 
         if (selected) {
-            DrawSlantedQuad(x + 5.0f, y + 4.0f, w, h, slant - 2.0f, Color{ 0x33, 0x65, 0x02, 110 });
-            DrawSlantedQuad(x - 3.0f, y - 2.0f, w, h, slant + 1.0f, Color{ 0x23, 0x7b, 0x52, 85 });
+            DrawSlantedQuad(x + 5.0f, y + 4.0f, w, h, slant - 2.0f, Color{ 150, 80, 200, 110 });
+            DrawSlantedQuad(x - 3.0f, y - 2.0f, w, h, slant + 1.0f, Color{ 212, 175, 55, 85 });
         } else {
-            DrawSlantedQuad(x + 3.0f, y + 4.0f, w, h, slant, Color{ 3, 6, 4, 210 });
+            DrawSlantedQuad(x + 3.0f, y + 4.0f, w, h, slant, Color{ 5, 3, 8, 210 });
         }
 
-        Color cardColor = selected ? Color{ 20, 32, 24, 255 } : Color{ 12, 17, 14, 255 };
+        Color cardColor = selected ? Color{ 40, 24, 58, 255 } : Color{ 18, 11, 26, 255 };
         DrawSlantedQuad(x, y, w, h, slant, cardColor);
 
-        Color accentColor = selected ? Color{ 0x33, 0x65, 0x02, 255 } : Color{ 0x23, 0x7b, 0x52, 120 };
+        Color accentColor = selected ? Color{ 150, 80, 200, 255 } : Color{ 96, 60, 130, 120 };
         DrawSlantedQuad(x + 1.0f, y, w - 2.0f, 4.0f, slant, accentColor);
-        DrawSlantedQuad(x, y + h - 2.0f, w, 2.0f, slant, selected ? Color{ 0x23, 0x7b, 0x52, 255 } : Color{ 25, 40, 30, 255 });
+        DrawSlantedQuad(x, y + h - 2.0f, w, 2.0f, slant,
+                        selected ? Color{ 212, 175, 55, 255 } : Color{ 34, 22, 46, 255 });
 
         const char* numTag = (i == 0) ? "01" : "02";
-        DrawText(numTag, (int)(x + 14.0f), (int)(y + 8.0f), 10, selected ? Color{ 0x23, 0x7b, 0x52, 255 } : Color{ 40, 60, 48, 255 });
+        DrawText(numTag, (int)(x + 14.0f), (int)(y + 8.0f), 10,
+                 selected ? Color{ 212, 175, 55, 255 } : Color{ 60, 44, 80, 255 });
 
         float spriteSize = selected ? 38.0f : 28.0f;
         float spriteY = y + (selected ? 22.0f : 24.0f);
@@ -138,7 +138,7 @@ void selectScreen(GameState* state, Vector2 mousePos) {
                 state->assets.players[i],
                 { 0, 0, (float)PLAYER_RECT_SIZE, (float)PLAYER_RECT_SIZE },
                 { spriteX + 2.0f, spriteY, spriteSize, spriteSize },
-                { 0, 0 }, 0.0f, Color{ 0x33, 0x65, 0x02, 160 }
+                { 0, 0 }, 0.0f, Color{ 150, 80, 200, 160 }
             );
         }
 
@@ -146,14 +146,14 @@ void selectScreen(GameState* state, Vector2 mousePos) {
             state->assets.players[i],
             { 0, 0, (float)PLAYER_RECT_SIZE, (float)PLAYER_RECT_SIZE },
             { spriteX, spriteY, spriteSize, spriteSize },
-            { 0, 0 }, 0.0f, selected ? WHITE : Color{ 110, 140, 120, 190 }
+            { 0, 0 }, 0.0f, selected ? WHITE : Color{ 130, 110, 150, 190 }
         );
 
         const char* name = (i == 0) ? "JAMIE" : "CAROL";
-        Color nameColor = selected ? Color{ 200, 240, 180, 255 } : Color{ 85, 115, 95, 255 };
-        
+        Color nameColor = selected ? Color{ 255, 230, 160, 255 } : Color{ 120, 100, 140, 255 };
+
         if (selected) {
-            DrawSlantedQuad(x + 8.0f, y + h - 26.0f, w - 16.0f, 16.0f, -6.0f, Color{ 0x33, 0x65, 0x02, 255 });
+            DrawSlantedQuad(x + 8.0f, y + h - 26.0f, w - 16.0f, 16.0f, -6.0f, Color{ 150, 80, 200, 255 });
             int nw = MeasureText(name, 10);
             DrawText(name, (int)(x + (w - nw) / 2.0f), (int)(y + h - 23.0f), 10, nameColor);
         } else {
@@ -165,27 +165,27 @@ void selectScreen(GameState* state, Vector2 mousePos) {
     float descY = 162.0f;
     float descH = 50.0f;
 
-    DrawSlantedQuad(18.0f - jitterX, descY + 4.0f, 210.0f, descH, -13.0f, Color{ 0x33, 0x65, 0x02, 80 });
-    DrawSlantedQuad(14.0f, descY, 212.0f, descH, -11.0f, Color{ 13, 20, 15, 255 });
-    DrawSlantedQuad(12.0f, descY, 5.0f, descH, -11.0f, Color{ 0x33, 0x65, 0x02, 255 });
-    DrawSlantedQuad(17.0f, descY, 2.0f, descH, -11.0f, Color{ 0x23, 0x7b, 0x52, 255 });
+    DrawSlantedQuad(18.0f - jitterX, descY + 4.0f, 210.0f, descH, -13.0f, Color{ 150, 80, 200, 80 });
+    DrawSlantedQuad(14.0f, descY, 212.0f, descH, -11.0f, Color{ 20, 12, 30, 255 });
+    DrawSlantedQuad(12.0f, descY, 5.0f, descH, -11.0f, Color{ 212, 175, 55, 255 });
+    DrawSlantedQuad(17.0f, descY, 2.0f, descH, -11.0f, Color{ 150, 80, 200, 255 });
 
     if (state->selectedCharacter == 0) {
-        DrawText("2nd Year Uni Student", 26 + (int)jitterX, (int)descY + 6, 8, Color{ 150, 215, 110, 255 });
-        DrawText("Ability", 26, (int)descY + 18, 8, Color{ 0x23, 0x7b, 0x52, 255 });
-        DrawText(": Radar ping detects clues", 66, (int)descY + 18, 8, Color{ 165, 190, 175, 255 });
-        DrawText("Trait", 26, (int)descY + 30, 8, Color{ 0x33, 0x65, 0x02, 255 });
-        DrawText(": Lower field of vision", 66, (int)descY + 30, 8, Color{ 120, 145, 130, 255 });
+        DrawText("2nd Year Uni Student", 26 + (int)jitterX, (int)descY + 6, 8, Color{ 240, 210, 130, 255 });
+        DrawText("Ability", 26, (int)descY + 18, 8, Color{ 212, 175, 55, 255 });
+        DrawText(": Radar ping detects clues", 66, (int)descY + 18, 8, Color{ 190, 170, 200, 255 });
+        DrawText("Trait", 26, (int)descY + 30, 8, Color{ 150, 80, 200, 255 });
+        DrawText(": Lower field of vision", 66, (int)descY + 30, 8, Color{ 150, 130, 170, 255 });
     } else {
-        DrawText("2nd Year Uni Student", 26 + (int)jitterX, (int)descY + 6, 8, Color{ 150, 215, 110, 255 });
-        DrawText("Ability", 26, (int)descY + 18, 8, Color{ 0x23, 0x7b, 0x52, 255 });
-        DrawText(": Able to sprint for period", 66, (int)descY + 18, 8, Color{ 165, 190, 175, 255 });
-        DrawText("Trait", 26, (int)descY + 30, 8, Color{ 0x33, 0x65, 0x02, 255 });
-        DrawText(": Lower regular speed", 66, (int)descY + 30, 8, Color{ 120, 145, 130, 255 });
+        DrawText("2nd Year Uni Student", 26 + (int)jitterX, (int)descY + 6, 8, Color{ 240, 210, 130, 255 });
+        DrawText("Ability", 26, (int)descY + 18, 8, Color{ 212, 175, 55, 255 });
+        DrawText(": Able to sprint for period", 66, (int)descY + 18, 8, Color{ 190, 170, 200, 255 });
+        DrawText("Trait", 26, (int)descY + 30, 8, Color{ 150, 80, 200, 255 });
+        DrawText(": Lower regular speed", 66, (int)descY + 30, 8, Color{ 150, 130, 170, 255 });
     }
 
-    DrawText("Left/Right", 12, 222, 7, Color{ 0x23, 0x7b, 0x52, 200 });
-    DrawText("[ENTER] Start", 140, 222, 7, Color{ 170, 220, 140, 255 });
+    DrawText("Left/Right", 12, 222, 7, Color{ 212, 175, 55, 200 });
+    DrawText("[ENTER] Start", 140, 222, 7, Color{ 220, 190, 120, 255 });
 }
 
 void dialogueScreen(GameState* state) {
@@ -1405,6 +1405,27 @@ void samarthDialogueScreen(GameState* state, float deltaTime) {
 
     ClearBackground(Color{ 10, 10, 15, 255 });
 
+    state->assets.samarthSprite.updateFrame(deltaTime);
+    DrawTexturePro(
+        state->assets.samarthSprite.getCurrentTexture(),
+        {
+            0, 0,
+            (float)state->assets.samarthSprite.getCurrentTexture().width,
+            (float)state->assets.samarthSprite.getCurrentTexture().height
+        },
+        {
+            40, 70,
+            (float)state->assets.samarthSprite.getCurrentTexture().width * 4,
+            (float)state->assets.samarthSprite.getCurrentTexture().height * 4
+        },
+        {
+            (float)state->assets.samarthSprite.getCurrentTexture().width * 2,
+            (float)state->assets.samarthSprite.getCurrentTexture().height * 2
+        },
+        0.0f,
+        {255, 255, 255, 255}
+    );
+
     // 1. Dialogue Box Background
     DrawRectangle(10, 145, SCREEN_WIDTH - 20, 85, Color{ 15, 15, 25, 240 });
     DrawRectangleLines(10, 145, SCREEN_WIDTH - 20, 85, BLUE);
@@ -1565,6 +1586,30 @@ GameAssets loadAssets() {
             "assets/chronos-anim3.png",
             "assets/chronos-anim4.png",
             "assets/chronos-anim5.png"
+        },
+        0.1f
+    );
+
+    assets.cogSprite = AnimatedSprite(
+        {
+            "assets/cog-anim1.png",
+            "assets/cog-anim2.png",
+            "assets/cog-anim3.png",
+            "assets/cog-anim4.png",
+            "assets/cog-anim5.png",
+            "assets/cog-anim6.png"
+        },
+        0.1f
+    );
+
+    assets.samarthSprite = AnimatedSprite(
+        {
+            "assets/samarth-anim1.png",
+            "assets/samarth-anim2.png",
+            "assets/samarth-anim3.png",
+            "assets/samarth-anim4.png",
+            "assets/samarth-anim5.png",
+            "assets/samarth-anim6.png"
         },
         0.1f
     );
