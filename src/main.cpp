@@ -7,6 +7,7 @@
 #include "Map.h"
 #include "island_layout.h"
 #include "animated_sprite.h"
+#include "util.h"
 
 #include <cstdint>
 #include <vector>
@@ -158,15 +159,6 @@ void menuLoop(void *data){
 	draw_button("Credits",creditsButton,creditsHovered);
 }
 
-void DrawSlantedQuad(float x, float y, float w, float h, float slant, Color color) {
-    Vector2 v1 = { x + slant, y };
-    Vector2 v2 = { x, y + h };
-    Vector2 v3 = { x + w + slant, y };
-    Vector2 v4 = { x + w, y + h };
-
-    DrawTriangle(v1, v2, v3, color);
-    DrawTriangle(v3, v2, v4, color);
-}
 
 void selectScreen(GameState* state, Vector2 mousePos) {
     if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A))  state->selectedCharacter = 0;
