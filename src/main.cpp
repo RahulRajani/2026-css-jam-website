@@ -15,6 +15,9 @@
 // Title + credits screens live in main_menu.cpp
 void menuScreen(GameState* state, Vector2 mousePos);
 void creditsScreen(GameState* state, Vector2 mousePos);
+void startBoss(GameState* state);
+bool bossActive();
+void bossScreen(GameState* state, Vector2 mousePos, float deltaTime);
 
 #include <cstdint>
 #include <vector>
@@ -521,6 +524,7 @@ static bool clueIntroSeen = false;
 static int  cluePage = -1;   // -1 = not showing
 
 void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
+    if (IsKeyPressed(KEY_R) && !state->gameOver) { startBoss(state); return; }
     if (cluePage >= 0) {
     deltaTime = 0.0f;   // freezes timer, movement and enemies
     if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
@@ -937,7 +941,6 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         DrawText(b[page], 30, 106, 8, RAYWHITE);
         DrawText("[ENTER]", SCREEN_WIDTH - 60, 154, 7, GOLD);
     } else if (state->gameOver) {
-    } else if (state->gameOver) {
         DrawRectangle(30, 82, SCREEN_WIDTH - 60, 76, Color{35, 10, 12, 235});
         DrawRectangleLines(30, 82, SCREEN_WIDTH - 60, 76, RED);
         if (state->gameOverReason == GAME_OVER_CAUGHT) {
@@ -1184,18 +1187,22 @@ void samarthDialogueScreen(GameState* state, float deltaTime) {
 void mainLoop(void* data) {
     GameState* state = (GameState*)data;
     Music& bgm = (state->currentIsland == 2) ? state->assets.bgm2 : state->assets.bgm;
-    if (IsAudioDeviceReady() && !IsMusicStreamPlaying(bgm)) {
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || GetKeyPressed() != 0) {
-            PlayMusicStream(bgm);
+    if (!bossActive()) {
+        if (IsAudioDeviceReady() && !IsMusicStreamPlaying(bgm)) {
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || GetKeyPressed() != 0) {
+                PlayMusicStream(bgm);
+            }
         }
+        UpdateMusicStream(bgm);
     }
-    UpdateMusicStream(bgm);
 
     float deltaTime = GetFrameTime();
     Vector2 gameMousePos = getGameMousePos();
 
     BeginTextureMode(state->screenTexture);
-        if (state->currentScreen == SCREEN_MENU) {
+        if (bossActive()) {
+            bossScreen(state, gameMousePos, deltaTime);
+        } else if (state->currentScreen == SCREEN_MENU) {
             menuScreen(state, gameMousePos);
         } else if (state->currentScreen == SCREEN_CREDITS) {
             creditsScreen(state, gameMousePos);
