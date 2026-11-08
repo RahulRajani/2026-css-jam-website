@@ -309,6 +309,7 @@ void loadIslandMap(TileMap& map) {
 // (tx, ty) has its centre at world (tx * 16 + 8, ty * 16 + 8).
 static const int ISLAND2_W = 120;
 static const int ISLAND2_H = 90;
+static const int LOOPS_PER_ISLAND = 2;
 static const float ISLAND2_LOOP_TIME = 60.0f;   // seconds per loop on island 2
 
 static const float CHRONOS_CHASE_SPEED = 28.0f;            // px/s
@@ -536,10 +537,10 @@ static void buildIsland2Map(TileMap& map) {
 }
 
 static const char* const ISLAND_1_LOOP_GOALS[] = {
-    "Rescue Samarth", "Find the portal key", "Reach the portal"
+    "Rescue Samarth", "Find the portal key and reach the portal"
 };
 static const char* const ISLAND_2_LOOP_GOALS[] = {
-    "Solve the shadow's riddle", "Find the exit key", "Escape Chronos"
+    "Solve the shadow's riddle", "Find the exit key and escape"
 };
 
 // Puts the player, Chronos, the shadows and the item back at their starting
@@ -573,7 +574,7 @@ static void respawnForLoop(GameState* state) {
     }
 }
 
-// Swaps the world over to island 2 and starts a fresh run of 3 loops there.
+// Swaps the world over to island 2 and starts a fresh set of loops there.
 static void enterIsland2(GameState* state) {
     TraceLog(LOG_WARNING, "I2 item tile=%d solid=%d | exit tile=%d solid=%d",
     Island2TileAt(I2_ITEM_X, I2_ITEM_Y), isSolidTileId(Island2TileAt(I2_ITEM_X, I2_ITEM_Y)),
@@ -704,7 +705,7 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         }
 
         if (state->timeRemaining <= 0.0f) {
-            if (state->currentLoop < 3) {
+            if (state->currentLoop < LOOPS_PER_ISLAND) {
                 state->currentLoop++;
                 state->timeRemaining = state->loopDuration;
                 respawnForLoop(state);
@@ -1186,15 +1187,12 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
     }
 
     if (state->victory) {
-        static int page = 0;
-        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) page = std::min(page + 1, 2);
-        DrawRectangle(20, 70, SCREEN_WIDTH - 40, 100, Color{10, 30, 18, 235});
+        DrawRectangle(20, 70, SCREEN_WIDTH - 40, 100, Color{10, 30, 18, 245});
         DrawRectangleLines(20, 70, SCREEN_WIDTH - 40, 100, GOLD);
-        const char* a[3] = { "Time is not infinite, Chronos.", "He drops a golden watch and fades.", "Pawned: 4000 GBP. Four ways." };
-        const char* b[3] = { "You wasted yours. Let us go.", "A portal opens. We step through.", "1000 each. Exactly what we signed for." };
-        DrawText(a[page], 30, 90, 8, RAYWHITE);
-        DrawText(b[page], 30, 106, 8, RAYWHITE);
-        DrawText("[ENTER]", SCREEN_WIDTH - 60, 154, 7, GOLD);
+        DrawText("VICTORY!", 82, 82, 16, GOLD);
+        DrawText("CHRONOS IS DEFEATED", 54, 108, 9, RAYWHITE);
+        DrawText("You escaped and made it home.", 35, 128, 8, RAYWHITE);
+        DrawText("GAME COMPLETE", 82, 151, 8, GREEN);
     } else if (state->gameOver) {
         DrawRectangle(30, 82, SCREEN_WIDTH - 60, 76, Color{35, 10, 12, 235});
         DrawRectangleLines(30, 82, SCREEN_WIDTH - 60, 76, RED);
@@ -1234,7 +1232,8 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
     
     DrawText(timerText.c_str(), posX, posY, fontSize, textColor);
 
-    std::string loopText = "Loop: " + std::to_string(state->currentLoop) + "/3";
+    std::string loopText = "Loop: " + std::to_string(state->currentLoop) + "/" +
+        std::to_string(LOOPS_PER_ISLAND);
     DrawText(loopText.c_str(), 8, 22, 10, RAYWHITE);
     const char* const* loopGoals = state->currentIsland == 1
         ? ISLAND_1_LOOP_GOALS
