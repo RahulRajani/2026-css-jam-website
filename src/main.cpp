@@ -2,10 +2,6 @@
 #include <emscripten/emscripten.h>
 #endif
 #include <raylib.h>
-#include "chronos.h"
-#include "lighting.h"
-#include "Map.h"
-#include "animated_sprite.h"
 
 #include <cstdint>
 #include <vector>
@@ -16,103 +12,13 @@
 #include <thread>
 #include <mutex>
 #include <chrono>
-#define SCREEN_WIDTH 240
-#define SCREEN_HEIGHT 240
 
-#define PLAYER_RECT_SIZE 16
-#define PLAYER_VELOCITY_MAX 100
-#define PLAYER_ACCELERATION 15
-#define PLAYER_LIGHT_SIZE 100
-
-// World size, in tiles. 120 x 120 tiles of 16px = 1920 x 1920 world pixels,
-// about 8 screens wide. Raise MAP_*_TILES for a bigger world.
-#define MAP_WIDTH_TILES 120
-#define MAP_HEIGHT_TILES 120
-#define TILE_SIZE 16
-
-enum ScreenState {
-    SCREEN_MENU,
-    SCREEN_SELECT,
-    SCREEN_DIALOGUE,
-    SCREEN_GAME,
-    SCREEN_CHRONOS_CONFRONTATION
-};
-
-enum GameOverReason {
-    GAME_OVER_NONE,
-    GAME_OVER_TIME,
-    GAME_OVER_CAUGHT
-};
-
-struct Player {
-    float x, y;
-    float velx, vely;
-};
-
-enum CollectibleType {
-    COLLECTIBLE_COG,
-};
-
-struct Collectible {
-    CollectibleType type;
-    Vector2 position;
-    bool collected;
-};
-
-struct Exit {
-    Vector2 position;
-    bool unlocked;
-};
-
-struct GameAssets {
-    Shader crtShader;
-
-    Texture players[2];
-    Music bgm;
-    Sound chronosVoices[3];
-    Texture chronosPortrait;
-
-    AnimatedSprite chronosSprite;
-    AnimatedSprite cogSprite;
-};
-
-struct GameState {
-    ScreenState currentScreen;
-    int selectedCharacter;
-    float selectAnim;
-    int dialogueIndex = 0;
-
-    Player player;
-    Chronos chronos;
-    TileMap islandMap;
-    Vector2 mapOrigin = {0.0f, 0.0f}; // world position of the map's top-left corner
-    LightingMap lightingMap;
-
-    std::vector<Collectible> collectibles;
-    int collectiblesCollected;
-
-    Exit testExit;
-
-    int currentLoop = 1;
-    float timeRemaining = 60.0f;
-    bool gameOver = false;
-    bool victory = false;
-    GameOverReason gameOverReason = GAME_OVER_NONE;
-    bool chronosDangerous = false;
-    float chronosHitCooldown = 0.0f;
-    float playerHitFlash = 0.0f;
-    float playerShakeTimer = 0.0f;
-
-    // Chronos confrontation variables
-    int confrontationLineIndex = 0;
-    float typewriterTimer = 0.0f;
-    int displayedChars = 0;
-    bool voicePlayed = false;
-
-    GameAssets assets;
-
-    RenderTexture2D screenTexture;
-};
+#include "util.h"
+#include "chronos.h"
+#include "lighting.h"
+#include "Map.h"
+#include "animated_sprite.h"
+#include "game.h"
 
 Vector2 getGameMousePos() {
     Vector2 mousePos = GetMousePosition();
@@ -158,38 +64,6 @@ void draw_button(const char* title, Rectangle button,bool overHover){
 //Concurrency MVP.
 std::vector<std::tuple<GameState,std::chrono::time_point<std::chrono::system_clock>>> timeLogger;
 static float timeAccumulator = 0.0f;
-
-void menuLoop(void *data){
-	GameState* state = static_cast<GameState*>(data);
-	const Vector2 mousePos = getGameMousePos();
-
-	Rectangle playButton = { (SCREEN_WIDTH - 200) / 2.0f, (SCREEN_HEIGHT / 2.0f) - 40.0f, 200.0f, 50.0f };
-    Rectangle creditsButton = { (SCREEN_WIDTH - 200) / 2.0f, (SCREEN_HEIGHT / 2.0f) + 20.0f, 200.0f, 50.0f };
-
-	bool playHovered = CheckCollisionPointRec(mousePos, playButton);
-    bool creditsHovered = CheckCollisionPointRec(mousePos, creditsButton);
-
-	if (playHovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-		state->currentScreen = SCREEN_SELECT;
-    }
-	if (creditsHovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        // Trigger transition to credits state
-    }
-
-	drawTitle("The Last Loop");
-	draw_button("Play",playButton,playHovered);
-	draw_button("Credits",creditsButton,creditsHovered);
-}
-
-void DrawSlantedQuad(float x, float y, float w, float h, float slant, Color color) {
-    Vector2 v1 = { x + slant, y };
-    Vector2 v2 = { x, y + h };
-    Vector2 v3 = { x + w + slant, y };
-    Vector2 v4 = { x + w, y + h };
-
-    DrawTriangle(v1, v2, v3, color);
-    DrawTriangle(v3, v2, v4, color);
-}
 
 void selectScreen(GameState* state, Vector2 mousePos) {
     if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A))  state->selectedCharacter = 0;
@@ -241,7 +115,6 @@ void selectScreen(GameState* state, Vector2 mousePos) {
     DrawSlantedQuad(12.0f, 12.0f, 6.0f, 22.0f, -15.0f, Color{ 0x33, 0x65, 0x02, 255 });
     DrawSlantedQuad(18.0f, 12.0f, 2.0f, 22.0f, -15.0f, Color{ 0x23, 0x7b, 0x52, 255 });
     DrawText("Select your Character", 28 + (int)jitterX, 17, 10, Color{ 190, 230, 170, 255 });
-    DrawText("Fugit Hora", 180, 18, 8, Color{ 0x23, 0x7b, 0x52, 255 });
 
     for (int i = 0; i < 2; i++) {
         bool selected = (state->selectedCharacter == i);
@@ -983,9 +856,8 @@ void mainLoop(void* data) {
 
     BeginTextureMode(state->screenTexture);
         if (state->currentScreen == SCREEN_MENU) {
-			ClearBackground(WHITE);
-			menuLoop(state);
-		} else if (state->currentScreen == SCREEN_SELECT) {
+            menuScreen(state, gameMousePos);
+        } else if (state->currentScreen == SCREEN_SELECT) {
             selectScreen(state, gameMousePos);
         } else if (state->currentScreen == SCREEN_DIALOGUE) {
             dialogueScreen(state);
@@ -1117,6 +989,9 @@ int main(int argc, char** argv) {
     state.collectibles.push_back(Collectible{COLLECTIBLE_COG, {80.0f, 80.0f}});
 
     state.currentScreen = SCREEN_SELECT;
+    
+    state.menuSelection = 0;
+
     state.selectedCharacter = 0;
     state.selectAnim = 0.0f;
     state.assets = loadAssets();
