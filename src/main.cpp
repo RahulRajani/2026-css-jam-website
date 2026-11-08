@@ -896,6 +896,7 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
                 state->battleCursorPos = 0.0f;
                 state->battleEnded = false;
                 state->battleWon = false;
+                state->battleAttemptsRemaining = 3;
                 state->battleResultTimer = 0.0f;
             }
         } else if (state->currentIsland == 2 && !state->yellowShadowDefeated) {
@@ -1277,9 +1278,12 @@ void battleScreen(GameState* state, float deltaTime) {
                 state->samarthChoiceActive = false;
                 state->samarthResponded = false;
                 state->samarthResponseTimer = 0.0f;
+            } else if (state->battleAttemptsRemaining > 1) {
+                state->battleAttemptsRemaining--;
+                state->battleEnded = false;
             } else {
                 state->gameOver = true;
-                state->gameOverReason = GAME_OVER_CAUGHT;
+                state->gameOverReason = GAME_OVER_SHADOW;
                 state->currentScreen = SCREEN_GAME;
             }
             state->battleResultTimer = 0.0f;
@@ -1292,6 +1296,8 @@ void battleScreen(GameState* state, float deltaTime) {
     DrawRectangle(130, 12, 100, 24, BLACK);
     DrawRectangleLines(130, 12, 100, 24, RED);
     DrawText("TIME SHADOW", 136, 18, 8, RAYWHITE);
+    const std::string attemptsText = "TRIES LEFT: " + std::to_string(state->battleAttemptsRemaining);
+    DrawText(attemptsText.c_str(), 12, 18, 8, GOLD);
     
     DrawRectangle(180, 38, 48, 48, Color{ 40, 10, 30, 255 });
     DrawRectangleLines(180, 38, 48, 48, RED);
@@ -1336,7 +1342,13 @@ void battleScreen(GameState* state, float deltaTime) {
         } else {
             DrawRectangle(30, 145, SCREEN_WIDTH - 60, 42, Color{ 40, 10, 10, 245 });
             DrawRectangleLines(30, 145, SCREEN_WIDTH - 60, 42, RED);
-            DrawText("Defeated...", 90, 161, 10, RED);
+            DrawText(
+                state->battleAttemptsRemaining > 1 ? "Missed - try again!" : "No chances left.",
+                state->battleAttemptsRemaining > 1 ? 70 : 72,
+                161,
+                9,
+                RED
+            );
         }
     }
 }

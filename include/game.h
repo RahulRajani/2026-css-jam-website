@@ -100,6 +100,7 @@ struct GameState {
     float battleCursorPos = 0.0f;
     bool battleEnded = false;
     bool battleWon = false;
+    int battleAttemptsRemaining = 3;
     float battleResultTimer = 0.0f;
 
     // Samarth dialogue & choice variables
