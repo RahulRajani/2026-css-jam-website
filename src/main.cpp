@@ -312,6 +312,7 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         state->player.vely = 0.0f;
         state->chronos.position = state->chronos.waypointA;
         state->chronos.movingToB = true;
+        state->patroller.position = {40.0f, 40.0f};
     }
 
     if (!state->gameOver && !state->victory && state->timeRemaining > 0.0f) {
@@ -332,6 +333,7 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
                 state->player.vely = 0.0f;
                 state->chronos.position = state->chronos.waypointA;
                 state->chronos.movingToB = true;
+                state->patroller.position = {40.0f, 40.0f};
                 state->chronosHitCooldown = 0.0f;
                 state->playerHitFlash = 0.0f;
                 state->playerShakeTimer = 0.0f;
@@ -360,6 +362,37 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         mousePos.y - SCREEN_HEIGHT / 2.0f,
         mousePos.x - SCREEN_WIDTH / 2.0f
     );
+
+    // Update Enemy chasing behavior
+    float edx = state->player.x - state->patroller.position.x;
+    float edy = state->player.y - state->patroller.position.y;
+    float edist = std::sqrt(edx * edx + edy * edy);
+    if (edist > 1.0f) {
+        state->patroller.position.x += (edx / edist) * state->patroller.speed * deltaTime;
+        state->patroller.position.y += (edy / edist) * state->patroller.speed * deltaTime;
+    }
+
+    // Check collision between Player and Enemy patroller
+    Rectangle playerBounds = {
+        state->player.x - PLAYER_RECT_SIZE * 0.5f,
+        state->player.y - PLAYER_RECT_SIZE * 0.5f,
+        PLAYER_RECT_SIZE,
+        PLAYER_RECT_SIZE
+    };
+    Rectangle enemyBounds = {
+        state->patroller.position.x - 6.0f,
+        state->patroller.position.y - 6.0f,
+        12.0f,
+        12.0f
+    };
+
+    if (CheckCollisionRecs(playerBounds, enemyBounds)) {
+        state->currentScreen = SCREEN_BATTLE;
+        state->battleCursorPos = 0.0f;
+        state->battleEnded = false;
+        state->battleWon = false;
+        state->battleResultTimer = 0.0f;
+    }
 
     if (!state->gameOver && !state->victory) {
         state->chronosHitCooldown = std::max(0.0f, state->chronosHitCooldown - deltaTime);
@@ -419,14 +452,14 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         const Texture2D chronosTexture = state->assets.chronosSprite.getCurrentTexture();
         const float chronosRadius =
             std::max(chronosTexture.width, chronosTexture.height) * 0.5f;
-        const Rectangle playerBounds = {
+        const Rectangle playerBoundsCheck = {
             state->player.x - PLAYER_RECT_SIZE * 0.5f,
             state->player.y - PLAYER_RECT_SIZE * 0.5f,
             PLAYER_RECT_SIZE,
             PLAYER_RECT_SIZE
         };
 
-        if (CheckCollisionCircleRec(state->chronos.position, chronosRadius, playerBounds)) {
+        if (CheckCollisionCircleRec(state->chronos.position, chronosRadius, playerBoundsCheck)) {
             state->chronosHitCooldown = 0.5f;
 
             if (state->chronosDangerous) {
@@ -534,6 +567,15 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
     // Temporary occlusion-test wall; replace with the map's obstacle data later.
     DrawRectangle(140, 58, 4, 108, DARKGRAY);
 
+    // Draw Enemy Patroller on map
+    DrawRectangle(
+        (int)state->patroller.position.x - 6,
+        (int)state->patroller.position.y - 6,
+        12,
+        12,
+        MAROON
+    );
+
     Color chronosColor = DARKGRAY;
     if (state->chronosDangerous &&
         static_cast<int>(GetTime() * 4.0) % 2 == 0) {
@@ -612,7 +654,6 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         const Texture* texture = NULL;
         switch (collectible.type) {
             case COLLECTIBLE_COG: texture = &state->assets.cogSprite.getCurrentTexture();
-
             default: break;
         }
 
@@ -739,6 +780,193 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
 
     std::string loopText = "Loop: " + std::to_string(state->currentLoop) + "/3";
     DrawText(loopText.c_str(), 8, 22, 10, RAYWHITE);
+}
+
+void battleScreen(GameState* state, float deltaTime) {
+    if (!state->battleEnded) {
+        state->battleCursorPos = (std::sin((float)GetTime() * 6.0f * 0.9f) + 1.0f) * 0.5f;
+
+        if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            state->battleEnded = true;
+            if (state->battleCursorPos >= 0.32f && state->battleCursorPos <= 0.68f) {
+                state->battleWon = true;
+            } else {
+                state->battleWon = false;
+            }
+        }
+    } else {
+        state->battleResultTimer += deltaTime;
+        if (state->battleResultTimer >= 1.5f) {
+            if (state->battleWon) {
+                state->currentScreen = SCREEN_SAMARTH_DIALOGUE;
+                state->samarthLineIndex = 0;
+                state->samarthChoiceActive = false;
+                state->samarthResponded = false;
+                state->samarthResponseTimer = 0.0f;
+            } else {
+                state->gameOver = true;
+                state->gameOverReason = GAME_OVER_CAUGHT;
+                state->currentScreen = SCREEN_GAME;
+            }
+            state->battleResultTimer = 0.0f;
+        }
+    }
+
+    ClearBackground(Color{ 15, 10, 25, 255 });
+    DrawTriangle((Vector2){0, 0}, (Vector2){240, 0}, (Vector2){0, 240}, Color{ 180, 15, 15, 25 });
+
+    DrawRectangle(130, 12, 100, 24, BLACK);
+    DrawRectangleLines(130, 12, 100, 24, RED);
+    DrawText("TIME SHADOW", 136, 18, 8, RAYWHITE);
+    
+    DrawRectangle(180, 38, 48, 48, Color{ 40, 10, 30, 255 });
+    DrawRectangleLines(180, 38, 48, 48, RED);
+    DrawText("SHADOW", 185, 58, 6, RED);
+
+    DrawRectangle(10, SCREEN_HEIGHT - 65, 90, 22, BLACK);
+    DrawRectangleLines(10, SCREEN_HEIGHT - 65, 90, 22, RED);
+    const char* charName = (state->selectedCharacter == 0) ? "JAMIE" : "CAROL";
+    DrawText(charName, 16, SCREEN_HEIGHT - 58, 8, RAYWHITE);
+    
+    if (state->assets.players[state->selectedCharacter].id != 0) {
+        DrawTexturePro(
+            state->assets.players[state->selectedCharacter],
+            {0, 0, (float)PLAYER_RECT_SIZE, (float)PLAYER_RECT_SIZE},
+            {26.0f, (float)SCREEN_HEIGHT - 118.0f, 48.0f, 48.0f},
+            {0, 0}, 0.0f, WHITE
+        );
+    }
+
+    int barX = 30;
+    int barY = 110;
+    int barW = SCREEN_WIDTH - 60;
+    int barH = 22;
+
+    DrawRectangle(barX, barY, barW, barH, BLACK);
+    DrawRectangleLines(barX, barY, barW, barH, RED);
+
+    int sweetZoneW = (int)(barW * 0.36f);
+    int sweetZoneX = barX + (barW - sweetZoneW) / 2;
+    DrawRectangle(sweetZoneX, barY, sweetZoneW, barH, Color{ 50, 220, 50, 190 });
+
+    int cursorX = barX + (int)(state->battleCursorPos * barW);
+    DrawRectangle(cursorX - 2, barY - 5, 4, barH + 10, YELLOW);
+
+    if (!state->battleEnded) {
+        DrawText("Press [SPACE] in green zone!", 42, 85, 8, RAYWHITE);
+    } else {
+        if (state->battleWon) {
+            DrawRectangle(30, 145, SCREEN_WIDTH - 60, 42, Color{ 10, 40, 20, 245 });
+            DrawRectangleLines(30, 145, SCREEN_WIDTH - 60, 42, GREEN);
+            DrawText("Shadow Defeated!", 70, 161, 8, GREEN);
+        } else {
+            DrawRectangle(30, 145, SCREEN_WIDTH - 60, 42, Color{ 40, 10, 10, 245 });
+            DrawRectangleLines(30, 145, SCREEN_WIDTH - 60, 42, RED);
+            DrawText("Defeated...", 90, 161, 10, RED);
+        }
+    }
+}
+
+void samarthDialogueScreen(GameState* state, float deltaTime) {
+    const char* lines[] = {
+        "Hey there, I was trapped inside that shadow, thanks for freeing me",
+        "Chronos has trapped me and several other humans on this island",
+        "Chronos has witnessed humans wasting time and resources",
+        "Thus he has decided that humans shall spend all of eternity in a loop",
+        state->selectedCharacter == 0 
+            ? "You're the only hope Jamie, are you in or out" 
+            : "You're the only hope Carol, are you in or out"
+    };
+    const int totalLines = 5;
+
+    if (!state->samarthChoiceActive && !state->samarthResponded) {
+        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            state->samarthLineIndex++;
+            if (state->samarthLineIndex >= totalLines) {
+                state->samarthChoiceActive = true;
+            }
+        }
+    } else if (state->samarthChoiceActive && !state->samarthResponded) {
+        if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
+            state->samarthChoiceSelected = 0;
+        }
+        if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
+            state->samarthChoiceSelected = 1;
+        }
+
+        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            if (state->samarthChoiceSelected == 0) {
+                state->luckPoints += 1;
+                state->acceptedChallenge = true;
+            } else {
+                state->acceptedChallenge = false;
+            }
+            state->samarthChoiceActive = false;
+            state->samarthResponded = true;
+            state->samarthResponseTimer = 0.0f;
+        }
+    } else {
+        state->samarthResponseTimer += deltaTime;
+        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || state->samarthResponseTimer >= 3.5f) {
+            state->currentScreen = SCREEN_GAME;
+            state->samarthResponded = false;
+            state->samarthLineIndex = 0;
+            state->patroller.position = { state->player.x + 140.0f, state->player.y + 140.0f };
+            state->samarthResponseTimer = 0.0f;
+        }
+    }
+
+    ClearBackground(Color{ 10, 10, 15, 255 });
+
+    DrawRectangle(10, SCREEN_HEIGHT - 65, 90, 22, BLACK);
+    DrawRectangleLines(10, SCREEN_HEIGHT - 65, 90, 22, BLUE);
+    DrawText("SAMARTH", 16, SCREEN_HEIGHT - 58, 8, RAYWHITE);
+    
+    DrawRectangle(26.0f, (float)SCREEN_HEIGHT - 118.0f, 48.0f, 48.0f, Color{ 15, 30, 50, 255 });
+    DrawRectangleLines(26.0f, (float)SCREEN_HEIGHT - 118.0f, 48.0f, 48.0f, BLUE);
+    DrawText("SAM", 38, (float)SCREEN_HEIGHT - 96, 7, BLUE);
+
+    DrawRectangle(10, 145, SCREEN_WIDTH - 20, 85, Color{ 15, 15, 25, 240 });
+    DrawRectangleLines(10, 145, SCREEN_WIDTH - 20, 85, BLUE);
+
+    if (!state->samarthChoiceActive && !state->samarthResponded) {
+        std::string currentText = lines[state->samarthLineIndex];
+        int maxCharsPerLine = 34;
+        std::string line1 = (currentText.length() > maxCharsPerLine) ? currentText.substr(0, maxCharsPerLine) : currentText;
+        std::string line2 = (currentText.length() > maxCharsPerLine) ? currentText.substr(maxCharsPerLine) : "";
+
+        DrawText(line1.c_str(), 20, 160, 8, RAYWHITE);
+        DrawText(line2.c_str(), 20, 175, 8, RAYWHITE);
+
+        if (static_cast<int>(GetTime() * 3.0) % 2 == 0) {
+            DrawText("[CLICK / ENTER]", SCREEN_WIDTH - 90, 220, 6, BLUE);
+        }
+    } else if (state->samarthChoiceActive && !state->samarthResponded) {
+        DrawText("Make your choice:", 20, 152, 8, SKYBLUE);
+
+        Rectangle opt1Rect = { 35.0f, 168.0f, 170.0f, 20.0f };
+        DrawRectangleRec(opt1Rect, state->samarthChoiceSelected == 0 ? Color{ 20, 80, 160, 230 } : Color{ 20, 20, 30, 230 });
+        DrawRectangleLines((int)opt1Rect.x, (int)opt1Rect.y, (int)opt1Rect.width, (int)opt1Rect.height, BLUE);
+        DrawText("Yes I'm in", (int)opt1Rect.x + 10, (int)opt1Rect.y + 6, 8, RAYWHITE);
+
+        Rectangle opt2Rect = { 35.0f, 192.0f, 170.0f, 20.0f };
+        DrawRectangleRec(opt2Rect, state->samarthChoiceSelected == 1 ? Color{ 160, 40, 40, 230 } : Color{ 20, 20, 30, 230 });
+        DrawRectangleLines((int)opt2Rect.x, (int)opt2Rect.y, (int)opt2Rect.width, (int)opt2Rect.height, RED);
+        DrawText("I don't care", (int)opt2Rect.x + 10, (int)opt2Rect.y + 6, 8, RAYWHITE);
+    } else {
+        if (state->acceptedChallenge) {
+            DrawText("Thats the spirit, I will be cheering", 20, 154, 8, SKYBLUE);
+            DrawText("you on all the way!", 20, 166, 8, SKYBLUE);
+            DrawText("-> I feel Samarth's resolve motivating me", 20, 186, 7, GOLD);
+        } else {
+            DrawText("That's too bad, I thought you'd be", 20, 158, 8, LIGHTGRAY);
+            DrawText("the one to save humanity...", 20, 172, 8, LIGHTGRAY);
+        }
+
+        if (static_cast<int>(GetTime() * 3.0) % 2 == 0) {
+            DrawText("[CLICK / ENTER]", SCREEN_WIDTH - 90, 220, 6, BLUE);
+        }
+    }
 }
 
 void chronosConfrontationScreen(GameState* state, float deltaTime) {
@@ -868,6 +1096,10 @@ void mainLoop(void* data) {
             gameScreen(state, gameMousePos, deltaTime);
         } else if (state->currentScreen == SCREEN_CHRONOS_CONFRONTATION) {
             chronosConfrontationScreen(state, deltaTime);
+        } else if (state->currentScreen == SCREEN_BATTLE) {
+            battleScreen(state, deltaTime);
+        } else if (state->currentScreen == SCREEN_SAMARTH_DIALOGUE) {
+            samarthDialogueScreen(state, deltaTime);
         }
     EndTextureMode();
 
@@ -930,7 +1162,7 @@ GameAssets loadAssets() {
     assets.chronosVoices[1] = LoadSound("assets/PartTwo.mp3");
     assets.chronosVoices[2] = LoadSound("assets/PartThree.mp3");
 
-    assets.bgm = LoadMusicStream("assets/oooscary.mp3");
+    assets.bgm = LoadMusicStream("assets/AreaOne.mp3");
     assets.bgm.looping = true;
     SetMusicVolume(assets.bgm, 0.7f);
     PlayMusicStream(assets.bgm);
@@ -990,6 +1222,8 @@ int main(int argc, char** argv) {
     state.player = {SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f};
 
     state.collectibles.push_back(Collectible{COLLECTIBLE_COG, {80.0f, 80.0f}});
+    state.patroller.position = {40.0f, 40.0f}; 
+    state.patroller.speed = 25.0f;             
 
     state.currentScreen = SCREEN_SELECT;
     
