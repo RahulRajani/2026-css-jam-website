@@ -517,7 +517,17 @@ static Vector2 chronosPatrolPos(float t) {
     return islandTileCentre(WP[0][0], WP[0][1]);
 }
 
+static bool clueIntroSeen = false;
+static int  cluePage = -1;   // -1 = not showing
+
 void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
+    if (cluePage >= 0) {
+    deltaTime = 0.0f;   // freezes timer, movement and enemies
+    if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        if (++cluePage >= 3) cluePage = -1;
+    }
+}
+
     if (state->gameOver && IsKeyPressed(KEY_R)) {
         state->currentLoop = 1;
         state->timeRemaining = state->loopDuration;
@@ -533,6 +543,12 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
 
     if (!state->gameOver && !state->victory && state->timeRemaining > 0.0f) {
         state->timeRemaining -= deltaTime;
+        if (state->currentLoop >= 2) {
+        const Vector2 tgt = state->testItem.collected ? state->testExit.position : state->testItem.position;
+        const float a = std::atan2(tgt.y - state->player.y, tgt.x - state->player.x);
+        DrawCircleV({ SCREEN_WIDTH / 2.0f + std::cos(a) * 50.0f,
+                  SCREEN_HEIGHT / 2.0f + std::sin(a) * 50.0f }, 3.0f, GOLD);
+}
 
         if (state->timeRemaining < 0.0f) {
             state->timeRemaining = 0.0f;
@@ -726,6 +742,7 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
 
         if (distance <= 16.0f) {
             state->testItem.collected = true;
+            if (!clueIntroSeen) { clueIntroSeen = true; cluePage = 0; }
         }
     }
 
@@ -962,6 +979,20 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
     std::string loopText = "Loop: " + std::to_string(state->currentLoop) + "/3";
     DrawText(loopText.c_str(), 8, 22, 10, RAYWHITE);
     DrawText(LOOP_GOAL[state->currentLoop - 1], 8, 36, 8, GOLD);
+    if (cluePage >= 0) {
+    static const char* L[3][2] = {
+        { "A shard of a clock face...",       "part of a broken stopwatch." },
+        { "I'd need 3 clock fragments",       "to fix it. This must be the key." },
+        { "One down, two to go.",             "Chronos won't make it easy." },
+    };
+    DrawRectangle(12, 164, SCREEN_WIDTH - 24, 64, Color{10, 14, 11, 245});
+    DrawRectangleLines(12, 164, SCREEN_WIDTH - 24, 64, Color{0x23, 0x7b, 0x52, 255});
+    DrawText(state->selectedCharacter == 0 ? "JAMIE" : "CAROL", 20, 170, 8, Color{0x33, 0x65, 0x02, 255});
+    DrawText(L[cluePage][0], 20, 184, 8, RAYWHITE);
+    DrawText(L[cluePage][1], 20, 196, 8, RAYWHITE);
+    if (static_cast<int>(GetTime() * 2.0) % 2 == 0)
+        DrawText("[ENTER]", SCREEN_WIDTH - 54, 216, 7, Color{0x23, 0x7b, 0x52, 255});
+}
 }
 
 void battleScreen(GameState* state, float deltaTime) {
