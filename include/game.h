@@ -1,6 +1,7 @@
 #pragma once
 
 #include <raylib.h>
+#include <vector>
 
 #include "defines.h"
 #include "chronos.h"
@@ -11,6 +12,11 @@
 struct Player {
     float x, y;
     float velx, vely;
+};
+
+struct Enemy {
+    Vector2 position;
+    float speed;
 };
 
 enum CollectibleType {
@@ -54,6 +60,7 @@ struct GameState {
     TileMap islandMap;
     Vector2 mapOrigin = {0.0f, 0.0f}; // world position of the map's top-left corner
     LightingMap lightingMap;
+    Enemy patroller;
 
     std::vector<Collectible> collectibles;
     int collectiblesCollected;
@@ -75,6 +82,21 @@ struct GameState {
     float typewriterTimer = 0.0f;
     int displayedChars = 0;
     bool voicePlayed = false;
+
+    // Battle minigame variables
+    float battleCursorPos = 0.0f;
+    bool battleEnded = false;
+    bool battleWon = false;
+    float battleResultTimer = 0.0f;
+
+    // Samarth dialogue & choice variables
+    int samarthLineIndex = 0;
+    int samarthChoiceSelected = 0;
+    bool samarthChoiceActive = false;
+    int luckPoints = 0;
+    bool samarthResponded = false;
+    float samarthResponseTimer = 0.0f;
+    bool acceptedChallenge = false;
 
     GameAssets assets;
 
