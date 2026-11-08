@@ -19,12 +19,7 @@ struct Enemy {
     float speed;
 };
 
-enum CollectibleType {
-    COLLECTIBLE_COG,
-};
-
 struct Collectible {
-    CollectibleType type;
     Vector2 position;
     bool collected;
 };
@@ -48,9 +43,6 @@ struct GameAssets {
 
 struct GameState {
     ScreenState currentScreen;
-
-    int menuSelection;
-
     int selectedCharacter;
     float selectAnim;
     int dialogueIndex = 0;
@@ -60,12 +52,9 @@ struct GameState {
     TileMap islandMap;
     Vector2 mapOrigin = {0.0f, 0.0f}; // world position of the map's top-left corner
     LightingMap lightingMap;
-    Enemy patroller;
-
-    std::vector<Collectible> collectibles;
-    int collectiblesCollected;
-
+    Collectible testItem;
     Exit testExit;
+    Enemy patroller;
 
     int currentLoop = 1;
     float timeRemaining = 60.0f;
@@ -103,8 +92,3 @@ struct GameState {
 
     RenderTexture2D screenTexture;
 };
-
-void menuScreen(GameState* state, Vector2 mousePos);
-void creditsScreen(GameState* state, Vector2 mousePos);
-
-void drawMenuBackdrop(float t, float jitterX);
