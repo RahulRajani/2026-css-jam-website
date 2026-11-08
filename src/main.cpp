@@ -16,7 +16,7 @@
 #include "util.h"
 #include "chronos.h"
 #include "lighting.h"
-#include "Map.h"
+#include "island_layout.h"
 #include "animated_sprite.h"
 #include "game.h"
 
