@@ -35,6 +35,7 @@ struct GameAssets {
 
     Texture players[2];
     Music bgm;
+    Music bgm2;
     Sound chronosVoices[3];
     Texture chronosPortrait;
 

@@ -186,17 +186,13 @@ void selectScreen(GameState* state, Vector2 mousePos) {
 }
 
 void dialogueScreen(GameState* state) {
-    const char* lines[][2] = {
-        {
-            "I awoke on a strange island",
-            "after a plane crash."
-        },
-        {
-            "I should figure out where I am,",
-            "this place looks creepy..."
-        }
-    };
-    const int totalLines = 2;
+ const char* lines[][2] = {
+    { "GBP 1,000 to sit on a research",   "flight. Rent's due. I said yes." },
+    { "Three other students. Strangers.", "Then the plane hit the ground." },
+    { "No broken bones, just a dark",     "island under a full moon..." },
+    { "Something is watching us.",        "I need to find a way off." },
+};
+const int totalLines = 4;
 
     if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         state->dialogueIndex++;
@@ -392,6 +388,10 @@ static void buildIsland2Map(TileMap& map) {
     BuildIsland2Map(map);
 }
 
+static const char* LOOP_GOAL[] = {
+    "Learn Chronos's route", "Find the clue", "Escape before he hunts"
+};
+
 // Puts the player, Chronos, the shadows and the item back at their starting
 // spots for the current island. Used on restart and at the start of each loop.
 static void respawnForLoop(GameState* state) {
@@ -421,6 +421,9 @@ static void respawnForLoop(GameState* state) {
 
 // Swaps the world over to island 2 and starts a fresh run of 3 loops there.
 static void enterIsland2(GameState* state) {
+    TraceLog(LOG_WARNING, "I2 item tile=%d solid=%d | exit tile=%d solid=%d",
+    Island2TileAt(I2_ITEM_X, I2_ITEM_Y), isSolidTileId(Island2TileAt(I2_ITEM_X, I2_ITEM_Y)),
+    Island2TileAt(I2_EXIT_X, I2_EXIT_Y), isSolidTileId(Island2TileAt(I2_EXIT_X, I2_EXIT_Y)));
     state->islandMap.Unload();
     state->islandMap = TileMap(ISLAND2_W, ISLAND2_H, TILE_SIZE, TILE_SIZE);
     buildIsland2Map(state->islandMap);
@@ -490,6 +493,30 @@ void portalScreen(GameState* state, float deltaTime) {
     }
 }
 
+static Vector2 chronosPatrolPos(float t) {
+    static const int WP[][2] = { {14,19}, {30,19}, {30,35}, {14,35} };
+    const int n = 4;
+    const float speed = CHRONOS_CHASE_SPEED;
+    float len[4], total = 0.0f;
+    for (int i = 0; i < n; ++i) {
+        Vector2 a = islandTileCentre(WP[i][0], WP[i][1]);
+        Vector2 b = islandTileCentre(WP[(i+1)%n][0], WP[(i+1)%n][1]);
+        len[i] = std::hypot(b.x - a.x, b.y - a.y);
+        total += len[i];
+    }
+    float d = std::fmod(t * speed, total);
+    for (int i = 0; i < n; ++i) {
+        if (d <= len[i]) {
+            Vector2 a = islandTileCentre(WP[i][0], WP[i][1]);
+            Vector2 b = islandTileCentre(WP[(i+1)%n][0], WP[(i+1)%n][1]);
+            float k = d / len[i];
+            return { a.x + (b.x - a.x) * k, a.y + (b.y - a.y) * k };
+        }
+        d -= len[i];
+    }
+    return islandTileCentre(WP[0][0], WP[0][1]);
+}
+
 void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
     if (state->gameOver && IsKeyPressed(KEY_R)) {
         state->currentLoop = 1;
@@ -536,15 +563,17 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         if (state->currentIsland == 1) {
             updateChronos(state->chronos, deltaTime, state->chronosDangerous);
         } else if (!state->gameOver) {
-            // Island 2: Chronos hunts you instead of patrolling between waypoints.
-            const float cdx = state->player.x - state->chronos.position.x;
-            const float cdy = state->player.y - state->chronos.position.y;
-            const float cdist = std::sqrt(cdx * cdx + cdy * cdy);
-            if (cdist > 1.0f) {
-                const float speed = state->chronosDangerous
-                    ? CHRONOS_CHASE_SPEED_DANGEROUS : CHRONOS_CHASE_SPEED;
-                state->chronos.position.x += (cdx / cdist) * speed * deltaTime;
-                state->chronos.position.y += (cdy / cdist) * speed * deltaTime;
+            if (state->chronosDangerous) {
+                const float cdx = state->player.x - state->chronos.position.x;
+                const float cdy = state->player.y - state->chronos.position.y;
+                const float cdist = std::sqrt(cdx * cdx + cdy * cdy);
+                if (cdist > 1.0f) {
+                    state->chronos.position.x += (cdx / cdist) * CHRONOS_CHASE_SPEED_DANGEROUS * deltaTime;
+                    state->chronos.position.y += (cdy / cdist) * CHRONOS_CHASE_SPEED_DANGEROUS * deltaTime;
+                }
+            } else {
+                state->chronos.position =
+                    chronosPatrolPos(state->loopDuration - state->timeRemaining);
             }
         }
     }
@@ -881,10 +910,16 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
     }
 
     if (state->victory) {
-        DrawRectangle(30, 82, SCREEN_WIDTH - 60, 76, Color{10, 30, 18, 235});
-        DrawRectangleLines(30, 82, SCREEN_WIDTH - 60, 76, GREEN);
-        DrawText("ESCAPED!", 78, 96, 22, GREEN);
-        DrawText("You escaped the island.", 55, 126, 10, RAYWHITE);
+        static int page = 0;
+        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) page = std::min(page + 1, 2);
+        DrawRectangle(20, 70, SCREEN_WIDTH - 40, 100, Color{10, 30, 18, 235});
+        DrawRectangleLines(20, 70, SCREEN_WIDTH - 40, 100, GOLD);
+        const char* a[3] = { "Time is not infinite, Chronos.", "He drops a golden watch and fades.", "Pawned: 4000 GBP. Four ways." };
+        const char* b[3] = { "You wasted yours. Let us go.", "A portal opens. We step through.", "1000 each. Exactly what we signed for." };
+        DrawText(a[page], 30, 90, 8, RAYWHITE);
+        DrawText(b[page], 30, 106, 8, RAYWHITE);
+        DrawText("[ENTER]", SCREEN_WIDTH - 60, 154, 7, GOLD);
+    } else if (state->gameOver) {
     } else if (state->gameOver) {
         DrawRectangle(30, 82, SCREEN_WIDTH - 60, 76, Color{35, 10, 12, 235});
         DrawRectangleLines(30, 82, SCREEN_WIDTH - 60, 76, RED);
@@ -926,6 +961,7 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
 
     std::string loopText = "Loop: " + std::to_string(state->currentLoop) + "/3";
     DrawText(loopText.c_str(), 8, 22, 10, RAYWHITE);
+    DrawText(LOOP_GOAL[state->currentLoop - 1], 8, 36, 8, GOLD);
 }
 
 void battleScreen(GameState* state, float deltaTime) {
@@ -1116,13 +1152,13 @@ void samarthDialogueScreen(GameState* state, float deltaTime) {
 
 void mainLoop(void* data) {
     GameState* state = (GameState*)data;
-    if (IsAudioDeviceReady() && !IsMusicStreamPlaying(state->assets.bgm)) {
+    Music& bgm = (state->currentIsland == 2) ? state->assets.bgm2 : state->assets.bgm;
+    if (IsAudioDeviceReady() && !IsMusicStreamPlaying(bgm)) {
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || GetKeyPressed() != 0) {
-            PlayMusicStream(state->assets.bgm);
+            PlayMusicStream(bgm);
         }
     }
-
-    UpdateMusicStream(state->assets.bgm);
+    UpdateMusicStream(bgm);
 
     float deltaTime = GetFrameTime();
     Vector2 gameMousePos = getGameMousePos();
@@ -1207,6 +1243,9 @@ GameAssets loadAssets() {
     assets.bgm = LoadMusicStream("assets/AreaOne.mp3");
     assets.bgm.looping = true;
     SetMusicVolume(assets.bgm, 0.7f);
+    assets.bgm2 = LoadMusicStream("assets/AreaTwo.mp3");
+    assets.bgm2.looping = true;
+    SetMusicVolume(assets.bgm2, 0.7f);
     PlayMusicStream(assets.bgm);
 
     assets.chronosSprite = AnimatedSprite(
@@ -1230,6 +1269,7 @@ void unloadAssets(GameAssets& assets) {
     UnloadTexture(assets.players[1]);
 
     UnloadMusicStream(assets.bgm);
+    UnloadMusicStream(assets.bgm2);
 
     assets.chronosSprite.unloadTextures();
 
