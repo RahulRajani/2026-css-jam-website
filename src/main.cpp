@@ -5,6 +5,7 @@
 #include "chronos.h"
 #include "lighting.h"
 #include "Map.h"
+#include "island_layout.h"
 #include "animated_sprite.h"
 
 #include <cstdint>
@@ -20,10 +21,7 @@
 #define PLAYER_ACCELERATION 15
 #define PLAYER_LIGHT_SIZE 100
 
-// World size, in tiles. 120 x 120 tiles of 16px = 1920 x 1920 world pixels,
-// about 8 screens wide. Raise MAP_*_TILES for a bigger world.
-#define MAP_WIDTH_TILES 120
-#define MAP_HEIGHT_TILES 120
+// The map is 16px tiles; its size and layout come from island_layout.cpp.
 #define TILE_SIZE 16
 
 enum ScreenState {
@@ -366,33 +364,61 @@ void clampPlayerToWorld(GameState* state) {
     if (p.y > bounds.y + bounds.height - half){ p.y = bounds.y + bounds.height - half;p.vely = 0.0f; }
 }
 
-// Builds a big irregular island in the middle of the map. The coastline
-// radius wobbles with the angle so it isn't a perfect circle.
-void generateIsland(TileMap& map) {
-    const int centreX = map.GetWidth() / 2;
-    const int centreY = map.GetHeight() / 2;
-    const float baseRadius = std::min(map.GetWidth(), map.GetHeight()) * 0.32f;
+// Placeholder art: each terrain character in island_layout.cpp is drawn as a
+// flat colour. A character's tile ID is its position in this list, so when
+// the real spritesheet arrives, this becomes the table of symbol -> tile ID.
+struct TerrainColour {
+    char symbol;
+    Color colour;
+};
 
-    map.Fill(14); // shallow water
+static const TerrainColour TERRAIN[] = {
+    {'~', {8, 14, 40, 255}},     // deep water
+    {',', {26, 56, 104, 255}},   // shallow water
+    {'s', {196, 170, 120, 255}}, // sand
+    {'c', {96, 72, 116, 255}},   // cliff
+    {'g', {62, 104, 56, 255}},   // grass
+    {'f', {30, 64, 44, 255}},    // dark grass
+    {'T', {14, 44, 30, 255}},    // tree
+    {'p', {156, 120, 78, 255}},  // dirt path
+    {'k', {120, 120, 130, 255}}, // rock
+    {'M', {92, 70, 126, 255}},   // mountain
+    {'o', {112, 112, 128, 255}}, // stone floor
+    {'q', {84, 104, 82, 255}},   // mossy cobble
+    {'W', {54, 54, 76, 255}},    // stone wall
+    {'S', {176, 166, 150, 255}}, // stairs
+    {'E', {255, 190, 80, 255}},  // door / cave mouth
+    {'l', {255, 214, 60, 255}},  // torch / candle
+    {'r', {176, 96, 255, 255}},  // rune / portal
+    {'i', {160, 160, 180, 255}}, // pillar
+    {'b', {124, 88, 52, 255}},   // wooden dock
+    {'B', {170, 116, 72, 255}},  // boat
+    {'x', {214, 214, 220, 255}}, // plane wreck
+    {'d', {132, 112, 92, 255}},  // debris
+};
 
-    for (int y = 0; y < map.GetHeight(); ++y) {
-        for (int x = 0; x < map.GetWidth(); ++x) {
-            const float dx = (float)(x - centreX);
-            const float dy = (float)(y - centreY);
-            const float distance = std::sqrt(dx * dx + dy * dy);
-            const float angle = std::atan2(dy, dx);
+static int terrainTileId(char symbol) {
+    for (size_t i = 0; i < sizeof(TERRAIN) / sizeof(TERRAIN[0]); ++i) {
+        if (TERRAIN[i].symbol == symbol) {
+            return static_cast<int>(i);
+        }
+    }
+    return -1; // unknown character: leave the cell empty
+}
 
-            const float wobble = 1.0f
-                + 0.10f * std::sin(angle * 3.0f + 1.3f)
-                + 0.06f * std::sin(angle * 5.0f + 4.1f)
-                + 0.04f * std::sin(angle * 9.0f + 2.2f);
-            const float shoreRadius = baseRadius * wobble;
+// Fills the map from ISLAND_LAYOUT and gives it the placeholder tileset.
+void loadIslandMap(TileMap& map) {
+    std::vector<Color> colours;
+    for (const TerrainColour& terrain : TERRAIN) {
+        colours.push_back(terrain.colour);
+    }
 
-            if (distance <= shoreRadius) {
-                map.SetTile(x, y, 5 + (x + y) % 3);        // grass variants
-            } else if (distance <= shoreRadius + 2.5f) {
-                map.SetTile(x, y, (x + y) % 3);            // sand variants
-            }
+    map.LoadPlaceholderTileset(colours);
+    map.SetTint({175, 180, 185, 255});
+
+    for (int y = 0; y < ISLAND_HEIGHT; ++y) {
+        for (int x = 0; x < ISLAND_WIDTH; ++x) {
+            map.SetTile(x, y, terrainTileId(ISLAND_LAYOUT[y][x]));
         }
     }
 }
@@ -854,26 +880,24 @@ int main(int argc, char** argv) {
     state.testExit.position = {200.0f, 80.0f};
     state.testExit.unlocked = false;
 
-    state.islandMap = TileMap(MAP_WIDTH_TILES, MAP_HEIGHT_TILES, TILE_SIZE, TILE_SIZE);
-    state.islandMap.LoadTileset(
-        "assets/TIles/Pixel_Beach_Island_Tileset_v1/spritesheet.png"
-    );
-    generateIsland(state.islandMap);
+    state.islandMap = TileMap(ISLAND_WIDTH, ISLAND_HEIGHT, TILE_SIZE, TILE_SIZE);
+    loadIslandMap(state.islandMap);
 
-    // Place the map so its centre tile sits where the old 15x15 island's centre
-    // was, (120, 120). The spawn point, item, exit, Chronos waypoints and test
-    // wall all keep their coordinates. The map just extends into negative
-    // coordinates, which is fine in a camera-driven world.
+    // Place the map so the spawn tile (the plane crash site) is centred on
+    // world (120, 120), where the player starts. The item, exit, Chronos
+    // waypoints and test wall all keep their coordinates, so they now sit at
+    // the crash site. The map extends into negative coordinates, which is
+    // fine in a camera-driven world.
     state.mapOrigin = {
-        SCREEN_WIDTH / 2.0f - (MAP_WIDTH_TILES / 2) * TILE_SIZE - TILE_SIZE / 2.0f,
-        SCREEN_HEIGHT / 2.0f - (MAP_HEIGHT_TILES / 2) * TILE_SIZE - TILE_SIZE / 2.0f
+        SCREEN_WIDTH / 2.0f - ISLAND_SPAWN_X * TILE_SIZE - TILE_SIZE / 2.0f,
+        SCREEN_HEIGHT / 2.0f - ISLAND_SPAWN_Y * TILE_SIZE - TILE_SIZE / 2.0f
     };
 
     // One lighting cell per world pixel, covering the whole map. Obstacles use
     // map-local coordinates, so the test wall (world 140,58 to 143,165) is
     // shifted by mapOrigin.
     state.lightingMap = LightingMap(
-        MAP_WIDTH_TILES * TILE_SIZE, MAP_HEIGHT_TILES * TILE_SIZE
+        ISLAND_WIDTH * TILE_SIZE, ISLAND_HEIGHT * TILE_SIZE
     );
     for (int y = 58; y < 166; ++y) {
         for (int x = 140; x < 144; ++x) {
