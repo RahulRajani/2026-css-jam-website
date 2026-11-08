@@ -444,6 +444,37 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
             state->player.vely = 0.0f;
         }
     }
+// Only update and check collision with the patroller if the shadow hasn't been defeated yet!
+    if (!state->shadowDefeated) {
+        float edx = state->player.x - state->patroller.position.x;
+        float edy = state->player.y - state->patroller.position.y;
+        float edist = std::sqrt(edx * edx + edy * edy);
+        if (edist > 1.0f) {
+            state->patroller.position.x += (edx / edist) * state->patroller.speed * deltaTime;
+            state->patroller.position.y += (edy / edist) * state->patroller.speed * deltaTime;
+        }
+
+        Rectangle playerBounds = {
+            state->player.x - PLAYER_RECT_SIZE * 0.5f,
+            state->player.y - PLAYER_RECT_SIZE * 0.5f,
+            PLAYER_RECT_SIZE,
+            PLAYER_RECT_SIZE
+        };
+        Rectangle enemyBounds = {
+            state->patroller.position.x - 6.0f,
+            state->patroller.position.y - 6.0f,
+            12.0f,
+            12.0f
+        };
+
+        if (CheckCollisionRecs(playerBounds, enemyBounds)) {
+            state->currentScreen = SCREEN_BATTLE;
+            state->battleCursorPos = 0.0f;
+            state->battleEnded = false;
+            state->battleWon = false;
+            state->battleResultTimer = 0.0f;
+        }
+    }
 
     if (!state->gameOver && !state->victory && state->chronosHitCooldown <= 0.0f) {
         const float dx = state->player.x - state->chronos.position.x;
@@ -568,13 +599,16 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
     DrawRectangle(140, 58, 4, 108, DARKGRAY);
 
     // Draw Enemy Patroller on map
-    DrawRectangle(
-        (int)state->patroller.position.x - 6,
-        (int)state->patroller.position.y - 6,
-        12,
-        12,
-        MAROON
-    );
+// Draw Enemy Patroller on map only if active/not defeated
+    if (!state->shadowDefeated) {
+        DrawRectangle(
+            (int)state->patroller.position.x - 6,
+            (int)state->patroller.position.y - 6,
+            12,
+            12,
+            MAROON
+        );
+    }
 
     Color chronosColor = DARKGRAY;
     if (state->chronosDangerous &&
@@ -911,23 +945,22 @@ void samarthDialogueScreen(GameState* state, float deltaTime) {
             state->currentScreen = SCREEN_GAME;
             state->samarthResponded = false;
             state->samarthLineIndex = 0;
-            state->patroller.position = { state->player.x + 140.0f, state->player.y + 140.0f };
+            state->shadowDefeated = true; // Permanently mark shadow as defeated
+            state->patroller.position = { -999.0f, -999.0f }; // Send shadow off-screen
             state->samarthResponseTimer = 0.0f;
         }
     }
 
     ClearBackground(Color{ 10, 10, 15, 255 });
 
-    DrawRectangle(10, SCREEN_HEIGHT - 65, 90, 22, BLACK);
-    DrawRectangleLines(10, SCREEN_HEIGHT - 65, 90, 22, BLUE);
-    DrawText("SAMARTH", 16, SCREEN_HEIGHT - 58, 8, RAYWHITE);
-    
-    DrawRectangle(26.0f, (float)SCREEN_HEIGHT - 118.0f, 48.0f, 48.0f, Color{ 15, 30, 50, 255 });
-    DrawRectangleLines(26.0f, (float)SCREEN_HEIGHT - 118.0f, 48.0f, 48.0f, BLUE);
-    DrawText("SAM", 38, (float)SCREEN_HEIGHT - 96, 7, BLUE);
-
+    // 1. Dialogue Box Background
     DrawRectangle(10, 145, SCREEN_WIDTH - 20, 85, Color{ 15, 15, 25, 240 });
     DrawRectangleLines(10, 145, SCREEN_WIDTH - 20, 85, BLUE);
+
+    // 2. Speaker Nameplate floating properly above the dialogue box
+    DrawRectangle(16, 127, 72, 18, BLACK);
+    DrawRectangleLines(16, 127, 72, 18, BLUE);
+    DrawText("SAMARTH", 20, 132, 8, BLUE);
 
     if (!state->samarthChoiceActive && !state->samarthResponded) {
         std::string currentText = lines[state->samarthLineIndex];
@@ -939,7 +972,7 @@ void samarthDialogueScreen(GameState* state, float deltaTime) {
         DrawText(line2.c_str(), 20, 175, 8, RAYWHITE);
 
         if (static_cast<int>(GetTime() * 3.0) % 2 == 0) {
-            DrawText("[CLICK / ENTER]", SCREEN_WIDTH - 90, 220, 6, BLUE);
+            DrawText("[CLICK / ENTER]", SCREEN_WIDTH - 90, 215, 6, BLUE);
         }
     } else if (state->samarthChoiceActive && !state->samarthResponded) {
         DrawText("Make your choice:", 20, 152, 8, SKYBLUE);
@@ -955,16 +988,16 @@ void samarthDialogueScreen(GameState* state, float deltaTime) {
         DrawText("I don't care", (int)opt2Rect.x + 10, (int)opt2Rect.y + 6, 8, RAYWHITE);
     } else {
         if (state->acceptedChallenge) {
-            DrawText("Thats the spirit, I will be cheering", 20, 154, 8, SKYBLUE);
-            DrawText("you on all the way!", 20, 166, 8, SKYBLUE);
-            DrawText("-> I feel Samarth's resolve motivating me", 20, 186, 7, GOLD);
+            DrawText("Thats the spirit, I will be cheering", 20, 156, 8, SKYBLUE);
+            DrawText("you on all the way!", 20, 168, 8, SKYBLUE);
+            DrawText("-> I feel Samarth's resolve motivating me", 20, 190, 7, GOLD);
         } else {
-            DrawText("That's too bad, I thought you'd be", 20, 158, 8, LIGHTGRAY);
-            DrawText("the one to save humanity...", 20, 172, 8, LIGHTGRAY);
+            DrawText("That's too bad, I thought you'd be", 20, 160, 8, LIGHTGRAY);
+            DrawText("the one to save humanity...", 20, 174, 8, LIGHTGRAY);
         }
 
         if (static_cast<int>(GetTime() * 3.0) % 2 == 0) {
-            DrawText("[CLICK / ENTER]", SCREEN_WIDTH - 90, 220, 6, BLUE);
+            DrawText("[CLICK / ENTER]", SCREEN_WIDTH - 90, 215, 6, BLUE);
         }
     }
 }
