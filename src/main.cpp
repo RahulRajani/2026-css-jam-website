@@ -174,16 +174,12 @@ void selectScreen(GameState* state, Vector2 mousePos) {
 
     if (state->selectedCharacter == 0) {
         DrawText("2nd Year Uni Student", 26 + (int)jitterX, (int)descY + 6, 8, Color{ 240, 210, 130, 255 });
-        DrawText("Ability", 26, (int)descY + 18, 8, Color{ 212, 175, 55, 255 });
-        DrawText(": Radar ping detects clues", 66, (int)descY + 18, 8, Color{ 190, 170, 200, 255 });
-        DrawText("Trait", 26, (int)descY + 30, 8, Color{ 150, 80, 200, 255 });
-        DrawText(": Lower field of vision", 66, (int)descY + 30, 8, Color{ 150, 130, 170, 255 });
+        DrawText("Ability:", 26, (int)descY + 18, 8, Color{ 212, 175, 55, 255 });
+        DrawText("Broke Boy", 66, (int)descY + 18, 8, Color{ 250, 170, 200, 255 });
     } else {
         DrawText("2nd Year Uni Student", 26 + (int)jitterX, (int)descY + 6, 8, Color{ 240, 210, 130, 255 });
         DrawText("Ability", 26, (int)descY + 18, 8, Color{ 212, 175, 55, 255 });
-        DrawText(": Able to sprint for period", 66, (int)descY + 18, 8, Color{ 190, 170, 200, 255 });
-        DrawText("Trait", 26, (int)descY + 30, 8, Color{ 150, 80, 200, 255 });
-        DrawText(": Lower regular speed", 66, (int)descY + 30, 8, Color{ 150, 130, 170, 255 });
+        DrawText("Broke Girl", 66, (int)descY + 18, 8, Color{ 250, 170, 200, 255 });
     }
 
     DrawText("Left/Right", 12, 222, 7, Color{ 212, 175, 55, 200 });
