@@ -97,6 +97,7 @@ struct GameState {
     bool samarthResponded = false;
     float samarthResponseTimer = 0.0f;
     bool acceptedChallenge = false;
+    bool shadowDefeated = false;
 
     GameAssets assets;
 
