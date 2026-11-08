@@ -49,7 +49,12 @@ struct Player {
     float velx, vely;
 };
 
+enum CollectibleType {
+    COLLECTIBLE_COG,
+};
+
 struct Collectible {
+    CollectibleType type;
     Vector2 position;
     bool collected;
 };
@@ -68,6 +73,7 @@ struct GameAssets {
     Texture chronosPortrait;
 
     AnimatedSprite chronosSprite;
+    AnimatedSprite cogSprite;
 };
 
 struct GameState {
@@ -81,7 +87,10 @@ struct GameState {
     TileMap islandMap;
     Vector2 mapOrigin = {0.0f, 0.0f}; // world position of the map's top-left corner
     LightingMap lightingMap;
-    Collectible testItem;
+
+    std::vector<Collectible> collectibles;
+    int collectiblesCollected;
+
     Exit testExit;
 
     int currentLoop = 1;
@@ -422,7 +431,6 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         state->chronosHitCooldown = 0.0f;
         state->playerHitFlash = 0.0f;
         state->playerShakeTimer = 0.0f;
-        state->testItem.collected = false;
         state->testExit.unlocked = false;
         state->player.x = SCREEN_WIDTH / 2.0f;
         state->player.y = SCREEN_HEIGHT / 2.0f;
@@ -450,7 +458,6 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
                 state->player.vely = 0.0f;
                 state->chronos.position = state->chronos.waypointA;
                 state->chronos.movingToB = true;
-                state->testItem.collected = false;
                 state->chronosHitCooldown = 0.0f;
                 state->playerHitFlash = 0.0f;
                 state->playerShakeTimer = 0.0f;
@@ -609,19 +616,6 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         }
     }
 
-    if (!state->gameOver && !state->victory &&
-        !state->testItem.collected && IsKeyPressed(KEY_E)) {
-        const float dx = state->player.x - state->testItem.position.x;
-        const float dy = state->player.y - state->testItem.position.y;
-        const float distance = std::sqrt(dx * dx + dy * dy);
-
-        if (distance <= 16.0f) {
-            state->testItem.collected = true;
-        }
-    }
-
-    state->testExit.unlocked = state->testItem.collected;
-
     if (state->testExit.unlocked && IsKeyPressed(KEY_E)) {
         const float dx = state->player.x - state->testExit.position.x;
         const float dy = state->player.y - state->testExit.position.y;
@@ -732,13 +726,37 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
     // Item and exit live in the world, so they go through the camera too.
     BeginMode2D(camera);
 
-    if (!state->testItem.collected) {
-        DrawRectangle(
-            (int)state->testItem.position.x - 4,
-            (int)state->testItem.position.y - 4,
-            8,
-            8,
-            GOLD
+    state->assets.cogSprite.updateFrame(deltaTime);
+
+    for (const Collectible& collectible : state->collectibles) {
+        if (collectible.collected) {
+            continue;
+        }
+
+        const Texture* texture = NULL;
+        switch (collectible.type) {
+            case COLLECTIBLE_COG: texture = &state->assets.cogSprite.getCurrentTexture();
+
+            default: break;
+        }
+
+        if (!texture) {
+            continue;
+        }
+
+        DrawTexturePro(
+            state->assets.cogSprite.getCurrentTexture(),
+            {0, 0, (float)texture->width, (float)texture->height},
+            {
+                collectible.position.x, collectible.position.y,
+                (float)texture->width, (float)texture->height
+            },
+            {
+                (float)texture->width / 2,
+                (float)texture->height / 2
+            },
+            0.0f,
+            {180, 180, 180, 255}
         );
     }
 
@@ -754,27 +772,51 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
 
     // HUD (screen space)
     DrawText(
-        state->testItem.collected ? "Item: 1/1" : "Item: 0/1",
+        ("Items: " +
+        std::to_string(state->collectiblesCollected) + "/" +
+        std::to_string(state->collectibles.size())).c_str(),
         8,
         8,
         10,
         RAYWHITE
     );
 
+    // test for item pickups
     if (!state->gameOver && !state->victory) {
-        const float itemDx = state->player.x - state->testItem.position.x;
-        const float itemDy = state->player.y - state->testItem.position.y;
-        const float itemDistance = std::sqrt(itemDx * itemDx + itemDy * itemDy);
-        const float exitDx = state->player.x - state->testExit.position.x;
-        const float exitDy = state->player.y - state->testExit.position.y;
-        const float exitDistance = std::sqrt(exitDx * exitDx + exitDy * exitDy);
+        bool drawnCollectTooltip = false;
 
-        if (!state->testItem.collected && itemDistance <= 28.0f) {
-            DrawText("Press E to collect", 62, 190, 10, GOLD);
-        } else if (state->testItem.collected && exitDistance <= 30.0f) {
-            DrawText("Press E to escape", 68, 190, 10, GREEN);
-        } else if (!state->testExit.unlocked && exitDistance <= 30.0f) {
-            DrawText("Find the item first", 64, 190, 10, LIGHTGRAY);
+        for (Collectible& collectible : state->collectibles) {
+            if (collectible.collected) {
+                continue;
+            }
+
+            const float itemDx = state->player.x - collectible.position.x;
+            const float itemDy = state->player.y - collectible.position.y;
+            const float itemDistance = std::sqrt(itemDx * itemDx + itemDy * itemDy);
+
+            if (itemDistance <= 28.0f) {
+                DrawText("Press E to collect", 62, 190, 10, GOLD);
+
+                if (IsKeyPressed(KEY_E)) {
+                    collectible.collected = true;
+                    state->collectiblesCollected++;
+                }
+
+                drawnCollectTooltip = true;
+                break;
+            }
+        }
+
+        if (!drawnCollectTooltip) {
+            const float exitDx = state->player.x - state->testExit.position.x;
+            const float exitDy = state->player.y - state->testExit.position.y;
+            const float exitDistance = std::sqrt(exitDx * exitDx + exitDy * exitDy);
+
+            if (state->collectiblesCollected >= state->collectibles.size() && exitDistance <= 30.0f) {
+                DrawText("Press E to escape", 68, 190, 10, GREEN);
+            } else if (!state->testExit.unlocked && exitDistance <= 30.0f) {
+                DrawText("Find the item first", 64, 190, 10, LIGHTGRAY);
+            }
         }
     }
 
@@ -1027,6 +1069,18 @@ GameAssets loadAssets() {
         0.1f
     );
 
+    assets.cogSprite = AnimatedSprite(
+        {
+            "assets/cog-anim1.png",
+            "assets/cog-anim2.png",
+            "assets/cog-anim3.png",
+            "assets/cog-anim4.png",
+            "assets/cog-anim5.png",
+            "assets/cog-anim6.png"
+        },
+        0.1f
+    );
+
     return assets;
 }
 
@@ -1043,6 +1097,7 @@ void unloadAssets(GameAssets& assets) {
     UnloadMusicStream(assets.bgm);
 
     assets.chronosSprite.unloadTextures();
+    assets.cogSprite.unloadTextures();
 
     assets = {};
 }
@@ -1056,8 +1111,9 @@ int main(int argc, char** argv) {
 
     GameState state = {};
     state.player = {SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f};
-    state.testItem.position = {80.0f, 80.0f};
-    state.testItem.collected = false;
+
+    state.collectibles.push_back(Collectible{COLLECTIBLE_COG, {80.0f, 80.0f}});
+
     state.currentScreen = SCREEN_SELECT;
     state.selectedCharacter = 0;
     state.selectAnim = 0.0f;
