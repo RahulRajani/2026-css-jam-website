@@ -188,9 +188,9 @@ void selectScreen(GameState* state, Vector2 mousePos) {
 void dialogueScreen(GameState* state) {
  const char* lines[][2] = {
     { "GBP 1,000 to sit on a research",   "flight. Rent's due. I said yes." },
-    { "Three other students. Strangers.", "Then the plane hit the ground." },
+    { "Three other students were on board.", "I woke alone in the wreckage." },
     { "No broken bones, just a dark",     "island under a full moon..." },
-    { "Something is watching us.",        "I need to find a way off." },
+    { "Something is watching us.",        "I need to find the others and escape." },
 };
 const int totalLines = 4;
 
@@ -306,22 +306,32 @@ void loadIslandMap(TileMap& map) {
 // (tx, ty) has its centre at world (tx * 16 + 8, ty * 16 + 8).
 static const int ISLAND2_W = 120;
 static const int ISLAND2_H = 90;
-static const float ISLAND2_LOOP_TIME = 90.0f;   // seconds per loop on island 2
+static const float ISLAND2_LOOP_TIME = 60.0f;   // seconds per loop on island 2
 
 static const float CHRONOS_CHASE_SPEED = 28.0f;            // px/s
-static const float CHRONOS_CHASE_SPEED_DANGEROUS = 46.0f;  // last 15 s of a loop
-static const float YELLOW_SHADOW_SPEED = 30.0f;
+static const float CHRONOS_CHASE_SPEED_DANGEROUS = 72.0f;  // last 15 s of a loop
 
 // Where things are on island 2 (tile coordinates, checked to be reachable).
 static const int I2_SPAWN_X = 22,  I2_SPAWN_Y = 25;   // crash site
 static const int I2_ITEM_X  = 29,  I2_ITEM_Y  = 63;   // luminous chamber
 static const int I2_EXIT_X  = 96,  I2_EXIT_Y  = 71;   // Chronos arena
-static const int I2_CHRONOS_X = 14, I2_CHRONOS_Y = 19;
+static const int I2_CHRONOS_X = 39, I2_CHRONOS_Y = 18;
 static const int I2_SHADOW_X  = 58, I2_SHADOW_Y  = 40;
+static const int I1_SHADOW_X = 80, I1_SHADOW_Y = 39;
+static const int I1_PORTAL_KEY_X = 54, I1_PORTAL_KEY_Y = 66;
+static const int I1_PORTAL_X = 125, I1_PORTAL_Y = 65;
 
 static Vector2 islandTileCentre(int tx, int ty) {
     return { tx * (float)TILE_SIZE + TILE_SIZE / 2.0f,
              ty * (float)TILE_SIZE + TILE_SIZE / 2.0f };
+}
+
+static Vector2 island1TileCentre(const GameState* state, int tx, int ty) {
+    const float tileSize = (float)state->islandMap.GetWorldTileSize();
+    return {
+        state->mapOrigin.x + tx * tileSize + tileSize / 2.0f,
+        state->mapOrigin.y + ty * tileSize + tileSize / 2.0f
+    };
 }
 
 // Colour for each TileID in TilePalette.h (placeholder art, same idea as TERRAIN).
@@ -355,8 +365,6 @@ static bool isSolidTileId(int id) {
         case TileID::CLIFF:
         case TileID::STONE_WALL:
         case TileID::MOUNTAIN:
-        case TileID::TREE:
-        case TileID::PINE_TREE:
         case TileID::ROCK:
         case TileID::RUIN:
         case TileID::WRECKAGE:
@@ -380,6 +388,142 @@ static bool island2Blocked(float cx, float cy) {
     return false;
 }
 
+static bool island1SolidTile(int tileId) {
+    switch (tileId) {
+        case 0:  // deep water
+        case 1:  // shallow water
+        case 3:  // cliff
+        case 8:  // rock
+        case 9:  // mountain
+        case 12: // stone wall
+        case 17: // pillar
+        case 20: // wreckage
+            return true;
+        default:
+            return false;
+    }
+}
+
+static bool island1Blocked(const GameState* state, float cx, float cy) {
+    // Match island 2's smaller collision box so narrow paths remain passable.
+    const float half = 5.0f;
+    const int tileSize = state->islandMap.GetWorldTileSize();
+    for (int sy = -1; sy <= 1; sy += 2) {
+        for (int sx = -1; sx <= 1; sx += 2) {
+            const int tx = (int)std::floor(
+                (cx + sx * half - state->mapOrigin.x) / tileSize
+            );
+            const int ty = (int)std::floor(
+                (cy + sy * half - state->mapOrigin.y) / tileSize
+            );
+            if (island1SolidTile(state->islandMap.GetTile(tx, ty))) return true;
+        }
+    }
+
+    const Rectangle playerBounds = {
+        cx - half, cy - half, half * 2.0f, half * 2.0f
+    };
+    const Rectangle testWall = {140.0f, 58.0f, 4.0f, 108.0f};
+    return CheckCollisionRecs(playerBounds, testWall);
+}
+
+static bool playerBlocked(const GameState* state, float cx, float cy) {
+    return state->currentIsland == 1
+        ? island1Blocked(state, cx, cy)
+        : island2Blocked(cx, cy);
+}
+
+static void moveChronosAlongMap(GameState* state, Vector2 target, float speed, float deltaTime) {
+    const float dx = target.x - state->chronos.position.x;
+    const float dy = target.y - state->chronos.position.y;
+    const float distance = std::sqrt(dx * dx + dy * dy);
+    if (distance <= 0.001f) return;
+
+    const float step = std::min(distance, speed * deltaTime);
+    state->chronos.position.x += dx / distance * step;
+    state->chronos.position.y += dy / distance * step;
+}
+
+static void drawEdgeIndicator(
+    Vector2 target, Vector2 from, const char* label, Color colour, float edgeInset = 12.0f
+) {
+    const float dx = target.x - from.x;
+    const float dy = target.y - from.y;
+    const float length = std::sqrt(dx * dx + dy * dy);
+    if (length <= 0.001f) return;
+
+    const Vector2 direction = {dx / length, dy / length};
+    const float edgeX = SCREEN_WIDTH / 2.0f - edgeInset;
+    const float edgeY = SCREEN_HEIGHT / 2.0f - edgeInset;
+    const float scaleX = std::abs(direction.x) > 0.001f
+        ? edgeX / std::abs(direction.x)
+        : 100000.0f;
+    const float scaleY = std::abs(direction.y) > 0.001f
+        ? edgeY / std::abs(direction.y)
+        : 100000.0f;
+    const float edgeDistance = std::min(scaleX, scaleY);
+    const Vector2 tip = {
+        SCREEN_WIDTH / 2.0f + direction.x * edgeDistance,
+        SCREEN_HEIGHT / 2.0f + direction.y * edgeDistance
+    };
+    const Vector2 perpendicular = {-direction.y, direction.x};
+    const Vector2 base = {tip.x - direction.x * 8.0f, tip.y - direction.y * 8.0f};
+    DrawTriangle(
+        {base.x + perpendicular.x * 4.0f, base.y + perpendicular.y * 4.0f},
+        tip,
+        {base.x - perpendicular.x * 4.0f, base.y - perpendicular.y * 4.0f},
+        colour
+    );
+
+    const int labelWidth = MeasureText(label, 8);
+    const int labelX = std::max(3, std::min(
+        SCREEN_WIDTH - labelWidth - 3,
+        (int)(tip.x - direction.x * 16.0f - labelWidth / 2.0f)
+    ));
+    const int labelY = std::max(16, std::min(
+        SCREEN_HEIGHT - 16,
+        (int)(tip.y - direction.y * 16.0f - 4.0f)
+    ));
+    DrawText(label, labelX, labelY, 8, colour);
+}
+
+static void drawKeyMarker(Vector2 position) {
+    const Vector2 ring = {position.x - 4.0f, position.y};
+    const Vector2 shaftStart = {position.x - 1.0f, position.y};
+    const Vector2 shaftEnd = {position.x + 10.0f, position.y};
+    DrawCircleV(ring, 5.0f, Color{65, 42, 12, 255});
+    DrawCircleV(ring, 3.5f, GOLD);
+    DrawCircleV(ring, 1.5f, Color{35, 24, 12, 255});
+    DrawLineEx(shaftStart, shaftEnd, 4.0f, Color{65, 42, 12, 255});
+    DrawLineEx(shaftStart, shaftEnd, 2.5f, GOLD);
+    DrawRectangle((int)position.x + 4, (int)position.y, 3, 5, GOLD);
+    DrawRectangle((int)position.x + 8, (int)position.y, 3, 4, GOLD);
+}
+
+static void drawPortalMarker(Vector2 position, bool unlocked) {
+    const Rectangle frame = {position.x - 9.0f, position.y - 11.0f, 18.0f, 22.0f};
+    const Color frameColour = unlocked ? Color{190, 110, 255, 255} : Color{105, 75, 125, 255};
+    const Color portalColour = unlocked ? Color{190, 110, 255, 190} : Color{85, 60, 100, 190};
+    DrawRectangleRec(frame, Color{30, 16, 42, 255});
+    DrawRectangleRec({position.x - 6.0f, position.y - 8.0f, 12.0f, 17.0f}, Color{8, 6, 18, 255});
+    DrawEllipse((int)position.x, (int)position.y - 2, 5, 7, portalColour);
+    DrawLineEx({position.x, position.y - 7.0f}, {position.x, position.y + 7.0f}, 1.5f,
+               Color{225, 190, 255, 220});
+    DrawRectangleLinesEx(frame, 2.0f, frameColour);
+    DrawCircleV({position.x + 5.0f, position.y + 4.0f}, 1.5f, GOLD);
+}
+
+static void drawExitMarker(Vector2 position, bool unlocked) {
+    const Rectangle frame = {position.x - 9.0f, position.y - 11.0f, 18.0f, 22.0f};
+    const Color frameColour = unlocked ? GREEN : Color{95, 100, 95, 255};
+    DrawRectangleRec(frame, Color{20, 32, 25, 255});
+    DrawRectangleRec({position.x - 6.0f, position.y - 8.0f, 12.0f, 17.0f}, Color{8, 14, 10, 255});
+    DrawRectangleLinesEx(frame, 2.0f, frameColour);
+    DrawLineEx({position.x - 3.0f, position.y + 5.0f}, {position.x + 3.0f, position.y + 5.0f},
+               1.5f, frameColour);
+    DrawCircleV({position.x + 4.0f, position.y + 1.0f}, 1.5f, GOLD);
+}
+
 static void buildIsland2Map(TileMap& map) {
     std::vector<Color> colours(ISLAND2_COLOURS,
                                ISLAND2_COLOURS + sizeof(ISLAND2_COLOURS) / sizeof(ISLAND2_COLOURS[0]));
@@ -388,8 +532,11 @@ static void buildIsland2Map(TileMap& map) {
     BuildIsland2Map(map);
 }
 
-static const char* LOOP_GOAL[] = {
-    "Learn Chronos's route", "Find the clue", "Escape before he hunts"
+static const char* const ISLAND_1_LOOP_GOALS[] = {
+    "Rescue Samarth", "Find the portal key", "Reach the portal"
+};
+static const char* const ISLAND_2_LOOP_GOALS[] = {
+    "Solve the shadow's riddle", "Find the exit key", "Escape Chronos"
 };
 
 // Puts the player, Chronos, the shadows and the item back at their starting
@@ -397,18 +544,22 @@ static const char* LOOP_GOAL[] = {
 static void respawnForLoop(GameState* state) {
     state->player.velx = 0.0f;
     state->player.vely = 0.0f;
-    state->testItem.collected = false;
-    state->testExit.unlocked = false;
-
     if (state->currentIsland == 1) {
+        state->portalKey.collected = false;
+        state->portalExit.unlocked = false;
         state->player.x = SCREEN_WIDTH / 2.0f;
         state->player.y = SCREEN_HEIGHT / 2.0f;
-        state->chronos.position = state->chronos.waypointA;
+        state->chronosPatrolWaypointIndex = 0;
+        state->chronos.position = state->currentLoop == 1
+            ? island1TileCentre(state, 35, 42)
+            : state->chronos.waypointA;
         state->chronos.movingToB = true;
         if (!state->shadowDefeated) {
-            state->patroller.position = {40.0f, 40.0f};
+            state->patroller.position = island1TileCentre(state, I1_SHADOW_X, I1_SHADOW_Y);
         }
     } else {
+        state->exitKey.collected = false;
+        state->finalExit.unlocked = false;
         const Vector2 spawn = islandTileCentre(I2_SPAWN_X, I2_SPAWN_Y);
         state->player.x = spawn.x;
         state->player.y = spawn.y;
@@ -443,10 +594,9 @@ static void enterIsland2(GameState* state) {
     state->playerHitFlash = 0.0f;
     state->playerShakeTimer = 0.0f;
 
-    state->testItem.position = islandTileCentre(I2_ITEM_X, I2_ITEM_Y);
-    state->testExit.position = islandTileCentre(I2_EXIT_X, I2_EXIT_Y);
+    state->exitKey.position = islandTileCentre(I2_ITEM_X, I2_ITEM_Y);
+    state->finalExit.position = islandTileCentre(I2_EXIT_X, I2_EXIT_Y);
 
-    state->yellowShadow.speed = YELLOW_SHADOW_SPEED;
     state->yellowShadowDefeated = false;
 
     respawnForLoop(state);
@@ -494,27 +644,29 @@ void portalScreen(GameState* state, float deltaTime) {
 }
 
 static Vector2 chronosPatrolPos(float t) {
-    static const int WP[][2] = { {14,19}, {30,19}, {30,35}, {14,35} };
-    const int n = 4;
+    static const int WP[][2] = { {39,18}, {54,22}, {65,29}, {79,35}, {91,39} };
+    const int n = 5;
     const float speed = CHRONOS_CHASE_SPEED;
-    float len[4], total = 0.0f;
-    for (int i = 0; i < n; ++i) {
-        Vector2 a = islandTileCentre(WP[i][0], WP[i][1]);
-        Vector2 b = islandTileCentre(WP[(i+1)%n][0], WP[(i+1)%n][1]);
-        len[i] = std::hypot(b.x - a.x, b.y - a.y);
-        total += len[i];
+    float segmentLengths[4];
+    float total = 0.0f;
+    for (int i = 0; i < n - 1; ++i) {
+        const Vector2 a = islandTileCentre(WP[i][0], WP[i][1]);
+        const Vector2 b = islandTileCentre(WP[i + 1][0], WP[i + 1][1]);
+        segmentLengths[i] = std::hypot(b.x - a.x, b.y - a.y);
+        total += segmentLengths[i];
     }
-    float d = std::fmod(t * speed, total);
-    for (int i = 0; i < n; ++i) {
-        if (d <= len[i]) {
+    float d = std::fmod(t * speed, total * 2.0f);
+    if (d > total) d = total * 2.0f - d;
+    for (int i = 0; i < n - 1; ++i) {
+        if (d <= segmentLengths[i]) {
             Vector2 a = islandTileCentre(WP[i][0], WP[i][1]);
-            Vector2 b = islandTileCentre(WP[(i+1)%n][0], WP[(i+1)%n][1]);
-            float k = d / len[i];
+            Vector2 b = islandTileCentre(WP[i + 1][0], WP[i + 1][1]);
+            float k = d / segmentLengths[i];
             return { a.x + (b.x - a.x) * k, a.y + (b.y - a.y) * k };
         }
-        d -= len[i];
+        d -= segmentLengths[i];
     }
-    return islandTileCentre(WP[0][0], WP[0][1]);
+    return islandTileCentre(WP[n - 1][0], WP[n - 1][1]);
 }
 
 void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
@@ -559,22 +711,63 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         state->timeRemaining > 0.0f &&
         state->timeRemaining <= 15.0f;
 
+    Collectible& activeKey = state->currentIsland == 1
+        ? state->portalKey
+        : state->exitKey;
+    Exit& activeExit = state->currentIsland == 1
+        ? state->portalExit
+        : state->finalExit;
+
     if (!state->victory) {
-        if (state->currentIsland == 1) {
-            updateChronos(state->chronos, deltaTime, state->chronosDangerous);
-        } else if (!state->gameOver) {
+        if (!state->gameOver) {
+            Vector2 target;
+            float speed;
             if (state->chronosDangerous) {
-                const float cdx = state->player.x - state->chronos.position.x;
-                const float cdy = state->player.y - state->chronos.position.y;
-                const float cdist = std::sqrt(cdx * cdx + cdy * cdy);
-                if (cdist > 1.0f) {
-                    state->chronos.position.x += (cdx / cdist) * CHRONOS_CHASE_SPEED_DANGEROUS * deltaTime;
-                    state->chronos.position.y += (cdy / cdist) * CHRONOS_CHASE_SPEED_DANGEROUS * deltaTime;
+                target = {state->player.x, state->player.y};
+                speed = CHRONOS_CHASE_SPEED_DANGEROUS;
+            } else if (state->currentIsland == 1) {
+                if (state->currentLoop == 1) {
+                    static const int FIRST_LOOP_ROUTE[][2] = {
+                        {35, 42}, {39, 42}, {39, 50}, {35, 50}
+                    };
+                    const int routeCount = sizeof(FIRST_LOOP_ROUTE) / sizeof(FIRST_LOOP_ROUTE[0]);
+                    state->chronosPatrolWaypointIndex %= routeCount;
+                    target = island1TileCentre(
+                        state,
+                        FIRST_LOOP_ROUTE[state->chronosPatrolWaypointIndex][0],
+                        FIRST_LOOP_ROUTE[state->chronosPatrolWaypointIndex][1]
+                    );
+                    const float dx = target.x - state->chronos.position.x;
+                    const float dy = target.y - state->chronos.position.y;
+                    if (dx * dx + dy * dy <= 4.0f) {
+                        state->chronosPatrolWaypointIndex =
+                            (state->chronosPatrolWaypointIndex + 1) % routeCount;
+                        target = island1TileCentre(
+                            state,
+                            FIRST_LOOP_ROUTE[state->chronosPatrolWaypointIndex][0],
+                            FIRST_LOOP_ROUTE[state->chronosPatrolWaypointIndex][1]
+                        );
+                    }
+                    speed = 40.0f;
+                } else {
+                    const Vector2 waypoint = state->chronos.movingToB
+                        ? state->chronos.waypointB
+                        : state->chronos.waypointA;
+                    const float dx = waypoint.x - state->chronos.position.x;
+                    const float dy = waypoint.y - state->chronos.position.y;
+                    if (dx * dx + dy * dy <= 4.0f) {
+                        state->chronos.movingToB = !state->chronos.movingToB;
+                    }
+                    target = state->chronos.movingToB
+                        ? state->chronos.waypointB
+                        : state->chronos.waypointA;
+                    speed = state->chronos.normalSpeed;
                 }
             } else {
-                state->chronos.position =
-                    chronosPatrolPos(state->loopDuration - state->timeRemaining);
+                target = chronosPatrolPos(state->loopDuration - state->timeRemaining);
+                speed = CHRONOS_CHASE_SPEED;
             }
+            moveChronosAlongMap(state, target, speed, deltaTime);
         }
     }
 
@@ -584,63 +777,6 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         mousePos.y - SCREEN_HEIGHT / 2.0f,
         mousePos.x - SCREEN_WIDTH / 2.0f
     );
-
-    if (state->currentIsland == 1 && !state->gameOver && !state->victory && !state->shadowDefeated) {
-        float edx = state->player.x - state->patroller.position.x;
-        float edy = state->player.y - state->patroller.position.y;
-        float edist = std::sqrt(edx * edx + edy * edy);
-        if (edist > 1.0f) {
-            state->patroller.position.x += (edx / edist) * state->patroller.speed * deltaTime;
-            state->patroller.position.y += (edy / edist) * state->patroller.speed * deltaTime;
-        }
-
-        Rectangle playerBounds = {
-            state->player.x - PLAYER_RECT_SIZE * 0.5f,
-            state->player.y - PLAYER_RECT_SIZE * 0.5f,
-            PLAYER_RECT_SIZE,
-            PLAYER_RECT_SIZE
-        };
-        Rectangle enemyBounds = {
-            state->patroller.position.x - 6.0f,
-            state->patroller.position.y - 6.0f,
-            12.0f,
-            12.0f
-        };
-
-        if (CheckCollisionRecs(playerBounds, enemyBounds)) {
-            state->currentScreen = SCREEN_BATTLE;
-            state->battleCursorPos = 0.0f;
-            state->battleEnded = false;
-            state->battleWon = false;
-            state->battleResultTimer = 0.0f;
-        }
-    }
-
-    // Island 2: the yellow shadow chases you; when it reaches you it asks a riddle.
-    if (state->currentIsland == 2 && !state->gameOver && !state->victory &&
-        !state->yellowShadowDefeated) {
-        const float ydx = state->player.x - state->yellowShadow.position.x;
-        const float ydy = state->player.y - state->yellowShadow.position.y;
-        const float ydist = std::sqrt(ydx * ydx + ydy * ydy);
-        if (ydist > 1.0f) {
-            state->yellowShadow.position.x += (ydx / ydist) * state->yellowShadow.speed * deltaTime;
-            state->yellowShadow.position.y += (ydy / ydist) * state->yellowShadow.speed * deltaTime;
-        }
-
-        const Rectangle yPlayer = {
-            state->player.x - PLAYER_RECT_SIZE * 0.5f,
-            state->player.y - PLAYER_RECT_SIZE * 0.5f,
-            PLAYER_RECT_SIZE, PLAYER_RECT_SIZE
-        };
-        const Rectangle yEnemy = {
-            state->yellowShadow.position.x - 6.0f,
-            state->yellowShadow.position.y - 6.0f,
-            12.0f, 12.0f
-        };
-        if (CheckCollisionRecs(yPlayer, yEnemy)) {
-            startRiddle(state);
-        }
-    }
 
     if (!state->gameOver && !state->victory) {
         state->chronosHitCooldown = std::max(0.0f, state->chronosHitCooldown - deltaTime);
@@ -660,14 +796,14 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         );
 
         const float nextX = state->player.x + state->player.velx * deltaTime;
-        if (state->currentIsland == 2 && island2Blocked(nextX, state->player.y)) {
+        if (playerBlocked(state, nextX, state->player.y)) {
             state->player.velx = 0.0f;
         } else {
             state->player.x = nextX;
         }
 
         const float nextY = state->player.y + state->player.vely * deltaTime;
-        if (state->currentIsland == 2 && island2Blocked(state->player.x, nextY)) {
+        if (playerBlocked(state, state->player.x, nextY)) {
             state->player.vely = 0.0f;
         } else {
             state->player.y = nextY;
@@ -702,15 +838,35 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
                 const float pushY = dy / safeDistance;
                 const float oldX = state->player.x;
                 const float oldY = state->player.y;
-                state->player.x += pushX * 30.0f;
-                state->player.y += pushY * 30.0f;
-                if (state->currentIsland == 2 &&
-                    island2Blocked(state->player.x, state->player.y)) {
-                    state->player.x = oldX;   // wall in the way: no knockback
-                    state->player.y = oldY;
+                const float knockbackX = pushX * 30.0f;
+                const float knockbackY = pushY * 30.0f;
+                if (state->currentIsland == 1) {
+                    const float nextX = oldX + knockbackX;
+                    const float nextY = oldY + knockbackY;
+                    const bool canMoveX = !island1Blocked(state, nextX, oldY);
+                    const bool canMoveY = !island1Blocked(state, oldX, nextY);
+
+                    if (!island1Blocked(state, nextX, nextY)) {
+                        state->player.x = nextX;
+                        state->player.y = nextY;
+                        state->player.velx = pushX * 80.0f;
+                        state->player.vely = pushY * 80.0f;
+                    } else {
+                        state->player.x = canMoveX ? nextX : oldX;
+                        state->player.y = canMoveY ? nextY : oldY;
+                        state->player.velx = canMoveX ? pushX * 80.0f : 0.0f;
+                        state->player.vely = canMoveY ? pushY * 80.0f : 0.0f;
+                    }
+                } else {
+                    state->player.x = oldX + knockbackX;
+                    state->player.y = oldY + knockbackY;
+                    if (island2Blocked(state->player.x, state->player.y)) {
+                        state->player.x = oldX;
+                        state->player.y = oldY;
+                    }
+                    state->player.velx = pushX * 80.0f;
+                    state->player.vely = pushY * 80.0f;
                 }
-                state->player.velx = pushX * 80.0f;
-                state->player.vely = pushY * 80.0f;
                 clampPlayerToWorld(state);
                 state->playerHitFlash = 0.25f;
                 state->playerShakeTimer = 0.35f;
@@ -718,22 +874,50 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         }
     }
 
-    if (!state->gameOver && !state->victory &&
-        !state->testItem.collected && IsKeyPressed(KEY_E)) {
-        const float dx = state->player.x - state->testItem.position.x;
-        const float dy = state->player.y - state->testItem.position.y;
-        const float distance = std::sqrt(dx * dx + dy * dy);
-
-        if (distance <= 16.0f) {
-            state->testItem.collected = true;
+    if (!state->gameOver && !state->victory && IsKeyPressed(KEY_E)) {
+        if (state->currentIsland == 1 && !state->shadowDefeated) {
+            const float dx = state->player.x - state->patroller.position.x;
+            const float dy = state->player.y - state->patroller.position.y;
+            if (dx * dx + dy * dy <= 20.0f * 20.0f) {
+                state->currentScreen = SCREEN_BATTLE;
+                state->battleCursorPos = 0.0f;
+                state->battleEnded = false;
+                state->battleWon = false;
+                state->battleResultTimer = 0.0f;
+            }
+        } else if (state->currentIsland == 2 && !state->yellowShadowDefeated) {
+            const float dx = state->player.x - state->yellowShadow.position.x;
+            const float dy = state->player.y - state->yellowShadow.position.y;
+            if (dx * dx + dy * dy <= 20.0f * 20.0f) {
+                startRiddle(state);
+            }
         }
     }
 
-    state->testExit.unlocked = state->testItem.collected;
+    if (!state->gameOver && !state->victory &&
+        !activeKey.collected && IsKeyPressed(KEY_E)) {
+        const float dx = state->player.x - activeKey.position.x;
+        const float dy = state->player.y - activeKey.position.y;
+        const float distance = std::sqrt(dx * dx + dy * dy);
 
-    if (state->testExit.unlocked && IsKeyPressed(KEY_E)) {
-        const float dx = state->player.x - state->testExit.position.x;
-        const float dy = state->player.y - state->testExit.position.y;
+        if (distance <= 16.0f) {
+            const bool blockerCleared = state->currentIsland == 1
+                ? state->shadowDefeated
+                : state->yellowShadowDefeated;
+            if (blockerCleared) {
+                activeKey.collected = true;
+            }
+        }
+    }
+
+    const bool blockerCleared = state->currentIsland == 1
+        ? state->shadowDefeated
+        : state->yellowShadowDefeated;
+    activeExit.unlocked = activeKey.collected && blockerCleared;
+
+    if (activeExit.unlocked && IsKeyPressed(KEY_E)) {
+        const float dx = state->player.x - activeExit.position.x;
+        const float dy = state->player.y - activeExit.position.y;
         const float distance = std::sqrt(dx * dx + dy * dy);
 
         if (distance <= 18.0f) {
@@ -775,22 +959,25 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
     }
 
     if (state->currentIsland == 1 && !state->shadowDefeated) {
-        DrawRectangle(
-            (int)state->patroller.position.x - 6,
-            (int)state->patroller.position.y - 6,
-            12,
-            12,
-            MAROON
+        DrawTexturePro(
+            state->assets.shadowSprite,
+            {0, 0, 32, 32},
+            {state->patroller.position.x, state->patroller.position.y, 20, 20},
+            {10, 10},
+            0.0f,
+            Color{145, 55, 65, 255}
         );
     }
 
     if (state->currentIsland == 2 && !state->yellowShadowDefeated) {
         const bool flicker = static_cast<int>(GetTime() * 6.0) % 2 == 0;
-        DrawRectangle(
-            (int)state->yellowShadow.position.x - 6,
-            (int)state->yellowShadow.position.y - 6,
-            12, 12,
-            flicker ? Color{255, 214, 60, 255} : Color{210, 170, 30, 255}
+        DrawTexturePro(
+            state->assets.shadowSprite,
+            {0, 0, 32, 32},
+            {state->yellowShadow.position.x, state->yellowShadow.position.y, 20, 20},
+            {10, 10},
+            0.0f,
+            flicker ? Color{255, 220, 90, 255} : Color{210, 170, 40, 255}
         );
     }
 
@@ -863,48 +1050,118 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
     // Item and exit live in the world, so they go through the camera too.
     BeginMode2D(camera);
 
-    if (!state->testItem.collected) {
-        DrawRectangle(
-            (int)state->testItem.position.x - 4,
-            (int)state->testItem.position.y - 4,
-            8,
-            8,
-            GOLD
-        );
+    if (!activeKey.collected) {
+        drawKeyMarker(activeKey.position);
     }
 
-    DrawRectangle(
-        (int)state->testExit.position.x - 6,
-        (int)state->testExit.position.y - 6,
-        12,
-        12,
-        state->testExit.unlocked ? GREEN : DARKGRAY
-    );
+    if (state->currentIsland == 1) {
+        drawPortalMarker(activeExit.position, activeExit.unlocked);
+    } else {
+        drawExitMarker(activeExit.position, activeExit.unlocked);
+    }
 
     EndMode2D();
 
     // HUD (screen space)
-    DrawText(
-        state->testItem.collected ? "Item: 1/1" : "Item: 0/1",
-        8,
-        8,
-        10,
-        RAYWHITE
-    );
+    const char* keyStatus = state->currentIsland == 1
+        ? (activeKey.collected ? "Portal key: 1/1" : "Portal key: 0/1")
+        : (activeKey.collected ? "Exit key: 1/1" : "Exit key: 0/1");
+    DrawText(keyStatus, 8, 8, 10, RAYWHITE);
 
     if (!state->gameOver && !state->victory) {
-        const float pdx = state->player.x - state->testItem.position.x;
-        const float pdy = state->player.y - state->testItem.position.y;
-        const float edx2 = state->player.x - state->testExit.position.x;
-        const float edy2 = state->player.y - state->testExit.position.y;
-        if (!state->testItem.collected && std::sqrt(pdx * pdx + pdy * pdy) <= 28.0f) {
-            DrawText("Press E to take", 70, 190, 10, GOLD);
+        const float pdx = state->player.x - activeKey.position.x;
+        const float pdy = state->player.y - activeKey.position.y;
+        const float edx2 = state->player.x - activeExit.position.x;
+        const float edy2 = state->player.y - activeExit.position.y;
+        const bool searchingForShadow = state->currentIsland == 1
+            ? !state->shadowDefeated
+            : !state->yellowShadowDefeated;
+        const bool lookingForKey = !activeKey.collected;
+        const Vector2 shadowPosition = state->currentIsland == 1
+            ? state->patroller.position
+            : state->yellowShadow.position;
+        const Vector2 navigationTarget = searchingForShadow
+            ? shadowPosition
+            : lookingForKey ? activeKey.position : activeExit.position;
+        const float targetHalfSize = searchingForShadow ? 6.0f : lookingForKey ? 4.0f : 6.0f;
+        const float targetScreenX = SCREEN_WIDTH / 2.0f + navigationTarget.x - camera.target.x;
+        const float targetScreenY = SCREEN_HEIGHT / 2.0f + navigationTarget.y - camera.target.y;
+        const bool targetOnScreen =
+            targetScreenX + targetHalfSize >= 0.0f &&
+            targetScreenX - targetHalfSize <= SCREEN_WIDTH &&
+            targetScreenY + targetHalfSize >= 0.0f &&
+            targetScreenY - targetHalfSize <= SCREEN_HEIGHT;
+        if (!targetOnScreen) {
+            drawEdgeIndicator(
+                navigationTarget,
+                {camera.target.x, camera.target.y},
+                searchingForShadow ? "SHADOW"
+                    : lookingForKey ? "KEY" : (state->currentIsland == 1 ? "PORTAL" : "EXIT"),
+                searchingForShadow ? ORANGE : lookingForKey ? GOLD : GREEN
+            );
+        }
+
+        const Texture2D chronosTexture = state->assets.chronosSprite.getCurrentTexture();
+        const float chronosScreenX = SCREEN_WIDTH / 2.0f + state->chronos.position.x - camera.target.x;
+        const float chronosScreenY = SCREEN_HEIGHT / 2.0f + state->chronos.position.y - camera.target.y;
+        const bool chronosOnScreen =
+            chronosScreenX + chronosTexture.width * 0.5f >= 0.0f &&
+            chronosScreenX - chronosTexture.width * 0.5f <= SCREEN_WIDTH &&
+            chronosScreenY + chronosTexture.height * 0.5f >= 0.0f &&
+            chronosScreenY - chronosTexture.height * 0.5f <= SCREEN_HEIGHT;
+        if (!chronosOnScreen) {
+            const bool flashRed = state->chronosDangerous &&
+                static_cast<int>(GetTime() * 4.0f) % 2 == 0;
+            drawEdgeIndicator(
+                state->chronos.position,
+                {camera.target.x, camera.target.y},
+                "CHRONOS",
+                flashRed ? RED : Color{190, 110, 255, 255},
+                28.0f
+            );
+        }
+
+        const float shadowDx = state->player.x - shadowPosition.x;
+        const float shadowDy = state->player.y - shadowPosition.y;
+        if (searchingForShadow && shadowDx * shadowDx + shadowDy * shadowDy <= 28.0f * 28.0f) {
+            const char* prompt = state->currentIsland == 1
+                ? "Press E: challenge shadow"
+                : "Press E: solve riddle";
+            DrawText(prompt, (SCREEN_WIDTH - MeasureText(prompt, 8)) / 2, 190, 8, ORANGE);
+        } else if (!activeKey.collected && std::sqrt(pdx * pdx + pdy * pdy) <= 28.0f) {
+            if (!blockerCleared) {
+                DrawText(
+                    state->currentIsland == 1
+                        ? "Rescue Samarth first"
+                        : "Solve the riddle first",
+                    54, 190, 10, GOLD
+                );
+            } else {
+                DrawText(
+                    state->currentIsland == 1
+                        ? "Press E: take portal key"
+                        : "Press E: take exit key",
+                    43, 190, 10, GOLD
+                );
+            }
         } else if (std::sqrt(edx2 * edx2 + edy2 * edy2) <= 30.0f) {
-            if (state->testExit.unlocked) {
+            if (activeExit.unlocked) {
                 DrawText(state->currentIsland == 1 ? "Press E to enter portal" : "Press E to escape",
                          state->currentIsland == 1 ? 46 : 68, 190, 10, GREEN);
+            } else if (!blockerCleared) {
+                DrawText(
+                    state->currentIsland == 1
+                        ? "Rescue Samarth to open portal"
+                        : "Solve the riddle to reach the key",
+                    34, 190, 10, LIGHTGRAY
+                );
             } else {
-                DrawText("Find the item first", 64, 190, 10, LIGHTGRAY);
+                DrawText(
+                    state->currentIsland == 1
+                        ? "Find the portal key first"
+                        : "Find the exit key first",
+                    49, 190, 10, LIGHTGRAY
+                );
             }
         }
     }
@@ -961,7 +1218,10 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
 
     std::string loopText = "Loop: " + std::to_string(state->currentLoop) + "/3";
     DrawText(loopText.c_str(), 8, 22, 10, RAYWHITE);
-    DrawText(LOOP_GOAL[state->currentLoop - 1], 8, 36, 8, GOLD);
+    const char* const* loopGoals = state->currentIsland == 1
+        ? ISLAND_1_LOOP_GOALS
+        : ISLAND_2_LOOP_GOALS;
+    DrawText(loopGoals[state->currentLoop - 1], 8, 36, 8, GOLD);
 }
 
 void battleScreen(GameState* state, float deltaTime) {
@@ -1056,8 +1316,8 @@ void samarthDialogueScreen(GameState* state, float deltaTime) {
         "Chronos has witnessed humans wasting time and resources",
         "Thus he has decided that humans shall spend all of eternity in a loop",
         state->selectedCharacter == 0 
-            ? "You're the only hope Jamie, are you in or out" 
-            : "You're the only hope Carol, are you in or out"
+            ? "You're our only hope, Jamie. Find the portal key and reach the next island."
+            : "You're our only hope, Carol. Find the portal key and reach the next island."
     };
     const int totalLines = 5;
 
@@ -1137,11 +1397,12 @@ void samarthDialogueScreen(GameState* state, float deltaTime) {
     } else {
         if (state->acceptedChallenge) {
             DrawText("Thats the spirit, I will be cheering", 20, 156, 8, SKYBLUE);
-            DrawText("you on all the way!", 20, 168, 8, SKYBLUE);
-            DrawText("-> I feel Samarth's resolve motivating me", 20, 190, 7, GOLD);
+            DrawText("you on all the way! Chronos repeats", 20, 168, 8, SKYBLUE);
+            DrawText("the same route every loop.", 20, 180, 8, GOLD);
         } else {
-            DrawText("That's too bad, I thought you'd be", 20, 160, 8, LIGHTGRAY);
-            DrawText("the one to save humanity...", 20, 174, 8, LIGHTGRAY);
+            DrawText("I understand. The portal key is", 20, 160, 8, LIGHTGRAY);
+            DrawText("still our way to the next island.", 20, 172, 8, LIGHTGRAY);
+            DrawText("Chronos repeats his route each loop.", 20, 184, 7, GOLD);
         }
 
         if (static_cast<int>(GetTime() * 3.0) % 2 == 0) {
@@ -1239,6 +1500,7 @@ GameAssets loadAssets() {
 
     assets.players[0] = LoadTexture("assets/player_jamie.png");
     assets.players[1] = LoadTexture("assets/player_carol.png");
+    assets.shadowSprite = LoadTexture("assets/TIles/Character.png");
 
     assets.bgm = LoadMusicStream("assets/AreaOne.mp3");
     assets.bgm.looping = true;
@@ -1267,6 +1529,7 @@ void unloadAssets(GameAssets& assets) {
 
     UnloadTexture(assets.players[0]);
     UnloadTexture(assets.players[1]);
+    UnloadTexture(assets.shadowSprite);
 
     UnloadMusicStream(assets.bgm);
     UnloadMusicStream(assets.bgm2);
@@ -1285,13 +1548,11 @@ int main(int argc, char** argv) {
 
     GameState state = {};
     state.player = {SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f};
-    state.testItem.position = {80.0f, 80.0f};
-    state.testItem.collected = false;
+    state.portalKey.collected = false;
+    state.exitKey.position = {0.0f, 0.0f};
+    state.exitKey.collected = false;
     
     // Initialize patroller shadow position & speed
-    state.patroller.position = {40.0f, 40.0f};
-    state.patroller.speed = 25.0f;
-    state.yellowShadow.speed = YELLOW_SHADOW_SPEED;
     state.shadowDefeated = false;
 
     state.currentScreen = SCREEN_SELECT;
@@ -1299,21 +1560,25 @@ int main(int argc, char** argv) {
     state.selectAnim = 0.0f;
     state.assets = loadAssets();
     state.currentScreen = SCREEN_MENU;
-    state.testExit.position = {200.0f, 80.0f};
-    state.testExit.unlocked = false;
+    state.portalExit.unlocked = false;
+    state.finalExit.position = {0.0f, 0.0f};
+    state.finalExit.unlocked = false;
 
     state.islandMap = TileMap(ISLAND_WIDTH, ISLAND_HEIGHT, TILE_SIZE, TILE_SIZE);
     loadIslandMap(state.islandMap);
 
-    // Place the map so the spawn tile (the plane crash site) is centred on
-    // world (120, 120), where the player starts. The item, exit, Chronos
-    // waypoints and test wall all keep their coordinates, so they now sit at
-    // the crash site. The map extends into negative coordinates, which is
-    // fine in a camera-driven world.
+    // Centre the spawn tile on world (120, 120). Item and exit positions are
+    // converted from map tiles once this origin is known; other test objects
+    // keep their world coordinates. Negative map coordinates are fine here.
     state.mapOrigin = {
         SCREEN_WIDTH / 2.0f - ISLAND_SPAWN_X * TILE_SIZE - TILE_SIZE / 2.0f,
         SCREEN_HEIGHT / 2.0f - ISLAND_SPAWN_Y * TILE_SIZE - TILE_SIZE / 2.0f
     };
+    state.chronos.position = island1TileCentre(&state, 35, 42);
+    state.chronos.movingToB = true;
+    state.patroller.position = island1TileCentre(&state, I1_SHADOW_X, I1_SHADOW_Y);
+    state.portalKey.position = island1TileCentre(&state, I1_PORTAL_KEY_X, I1_PORTAL_KEY_Y);
+    state.portalExit.position = island1TileCentre(&state, I1_PORTAL_X, I1_PORTAL_Y);
 
     // One lighting cell per world pixel, covering the whole map. Obstacles use
     // map-local coordinates, so the test wall (world 140,58 to 143,165) is

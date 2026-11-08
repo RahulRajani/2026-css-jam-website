@@ -34,6 +34,7 @@ struct GameAssets {
     Shader crtShader;
 
     Texture players[2];
+    Texture shadowSprite;
     Music bgm;
     Music bgm2;
     Sound chronosVoices[3];
@@ -55,8 +56,10 @@ struct GameState {
     TileMap islandMap;
     Vector2 mapOrigin = {0.0f, 0.0f}; // world position of the map's top-left corner
     LightingMap lightingMap;
-    Collectible testItem;
-    Exit testExit;
+    Collectible portalKey;
+    Collectible exitKey;
+    Exit portalExit;
+    Exit finalExit;
     Enemy patroller;
 
     // Island 2: portal trip, loop length, and the yellow riddle shadow
@@ -82,6 +85,7 @@ struct GameState {
     bool victory = false;
     GameOverReason gameOverReason = GAME_OVER_NONE;
     bool chronosDangerous = false;
+    int chronosPatrolWaypointIndex = 0;
     float chronosHitCooldown = 0.0f;
     float playerHitFlash = 0.0f;
     float playerShakeTimer = 0.0f;

@@ -25,7 +25,7 @@ static const int MAX_TRIES = 3;
 
 static const char* INTRO[][2] = {
     { "Another lost soul in the loop...", "How delicious." },
-    { "Answer my riddle, mortal, and", "I may let you pass." },
+    { "Solve my riddle, mortal, and", "the exit key will be yours." },
     { "Fail three times and you stay", "with me. Forever." },
 };
 static const int INTRO_COUNT = (int)(sizeof(INTRO) / sizeof(INTRO[0]));
