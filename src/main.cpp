@@ -15,6 +15,9 @@
 // Title + credits screens live in main_menu.cpp
 void menuScreen(GameState* state, Vector2 mousePos);
 void creditsScreen(GameState* state, Vector2 mousePos);
+void startBoss(GameState* state);
+bool bossActive();
+void bossScreen(GameState* state, Vector2 mousePos, float deltaTime);
 
 #include <cstdint>
 #include <vector>
@@ -669,7 +672,18 @@ static Vector2 chronosPatrolPos(float t) {
     return islandTileCentre(WP[n - 1][0], WP[n - 1][1]);
 }
 
+static bool clueIntroSeen = false;
+static int  cluePage = -1;   // -1 = not showing
+
 void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
+    if (IsKeyPressed(KEY_R) && !state->gameOver) { startBoss(state); return; }
+    if (cluePage >= 0) {
+        deltaTime = 0.0f;
+        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            if (++cluePage >= 3) cluePage = -1;
+        }
+    }
+
     if (state->gameOver && IsKeyPressed(KEY_R)) {
         state->currentLoop = 1;
         state->timeRemaining = state->loopDuration;
@@ -685,7 +699,6 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
 
     if (!state->gameOver && !state->victory && state->timeRemaining > 0.0f) {
         state->timeRemaining -= deltaTime;
-
         if (state->timeRemaining < 0.0f) {
             state->timeRemaining = 0.0f;
         }
@@ -906,6 +919,10 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
                 : state->yellowShadowDefeated;
             if (blockerCleared) {
                 activeKey.collected = true;
+                if (!clueIntroSeen) {
+                    clueIntroSeen = true;
+                    cluePage = 0;
+                }
             }
         }
     }
@@ -925,7 +942,8 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
                 state->portalTimer = 0.0f;
                 state->currentScreen = SCREEN_PORTAL;   // step through to island 2
             } else {
-                state->victory = true;                  // escaped for real
+                startBoss(state);
+                return;
             }
         }
     }
@@ -1177,7 +1195,6 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         DrawText(b[page], 30, 106, 8, RAYWHITE);
         DrawText("[ENTER]", SCREEN_WIDTH - 60, 154, 7, GOLD);
     } else if (state->gameOver) {
-    } else if (state->gameOver) {
         DrawRectangle(30, 82, SCREEN_WIDTH - 60, 76, Color{35, 10, 12, 235});
         DrawRectangleLines(30, 82, SCREEN_WIDTH - 60, 76, RED);
         if (state->gameOverReason == GAME_OVER_CAUGHT) {
@@ -1222,6 +1239,21 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         ? ISLAND_1_LOOP_GOALS
         : ISLAND_2_LOOP_GOALS;
     DrawText(loopGoals[state->currentLoop - 1], 8, 36, 8, GOLD);
+    if (cluePage >= 0) {
+        static const char* clueLines[3][2] = {
+            { "A key marked with Chronos's symbol.", "The metal is warm to the touch." },
+            { "It must unlock the way forward.", "Someone wants us to reach the portal." },
+            { "Chronos is leading us somewhere.", "Keep moving before the loop resets." },
+        };
+        DrawRectangle(12, 164, SCREEN_WIDTH - 24, 64, Color{10, 14, 11, 245});
+        DrawRectangleLines(12, 164, SCREEN_WIDTH - 24, 64, Color{0x23, 0x7b, 0x52, 255});
+        DrawText(state->selectedCharacter == 0 ? "JAMIE" : "CAROL", 20, 170, 8, Color{0x33, 0x65, 0x02, 255});
+        DrawText(clueLines[cluePage][0], 20, 184, 8, RAYWHITE);
+        DrawText(clueLines[cluePage][1], 20, 196, 8, RAYWHITE);
+        if (static_cast<int>(GetTime() * 2.0) % 2 == 0) {
+            DrawText("[ENTER]", SCREEN_WIDTH - 54, 216, 7, Color{0x23, 0x7b, 0x52, 255});
+        }
+    }
 }
 
 void battleScreen(GameState* state, float deltaTime) {
@@ -1414,18 +1446,22 @@ void samarthDialogueScreen(GameState* state, float deltaTime) {
 void mainLoop(void* data) {
     GameState* state = (GameState*)data;
     Music& bgm = (state->currentIsland == 2) ? state->assets.bgm2 : state->assets.bgm;
-    if (IsAudioDeviceReady() && !IsMusicStreamPlaying(bgm)) {
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || GetKeyPressed() != 0) {
-            PlayMusicStream(bgm);
+    if (!bossActive()) {
+        if (IsAudioDeviceReady() && !IsMusicStreamPlaying(bgm)) {
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || GetKeyPressed() != 0) {
+                PlayMusicStream(bgm);
+            }
         }
+        UpdateMusicStream(bgm);
     }
-    UpdateMusicStream(bgm);
 
     float deltaTime = GetFrameTime();
     Vector2 gameMousePos = getGameMousePos();
 
     BeginTextureMode(state->screenTexture);
-        if (state->currentScreen == SCREEN_MENU) {
+        if (bossActive()) {
+            bossScreen(state, gameMousePos, deltaTime);
+        } else if (state->currentScreen == SCREEN_MENU) {
             menuScreen(state, gameMousePos);
         } else if (state->currentScreen == SCREEN_CREDITS) {
             creditsScreen(state, gameMousePos);
@@ -1543,7 +1579,7 @@ int main(int argc, char** argv) {
     SetTraceLogLevel(LOG_WARNING);
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 
-    InitWindow(1280, 720, "game");
+    InitWindow(1280, 720, "THE LAST LOOP");
     InitAudioDevice();
 
     GameState state = {};
