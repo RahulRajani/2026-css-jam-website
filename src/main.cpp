@@ -8,88 +8,19 @@
 #include "island_layout.h"
 #include "animated_sprite.h"
 #include "util.h"
+#include "game.h"   // GameState, structs (+ defines.h: screen size, ScreenState)
+#include "island2_layout.h"   // island 2 layout
+#include "TilePalette.h"    // TileID::*
+
+// Title + credits screens live in main_menu.cpp
+void menuScreen(GameState* state, Vector2 mousePos);
+void creditsScreen(GameState* state, Vector2 mousePos);
 
 #include <cstdint>
 #include <vector>
 #include <cmath>
 #include <algorithm>
-
-#define SCREEN_WIDTH 240
-#define SCREEN_HEIGHT 240
-
-#define PLAYER_RECT_SIZE 16
-#define PLAYER_VELOCITY_MAX 100
-#define PLAYER_ACCELERATION 15
-#define PLAYER_LIGHT_SIZE 100
-
-// The map is 16px tiles; its size and layout come from island_layout.cpp.
-#define TILE_SIZE 16
-
-enum ScreenState {
-    SCREEN_MENU,
-    SCREEN_SELECT,
-    SCREEN_DIALOGUE,
-    SCREEN_GAME
-};
-
-enum GameOverReason {
-    GAME_OVER_NONE,
-    GAME_OVER_TIME,
-    GAME_OVER_CAUGHT
-};
-
-struct Player {
-    float x, y;
-    float velx, vely;
-};
-
-struct Collectible {
-    Vector2 position;
-    bool collected;
-};
-
-struct Exit {
-    Vector2 position;
-    bool unlocked;
-};
-
-struct GameAssets {
-    Shader crtShader;
-
-    Texture players[2];
-    Music bgm;
-
-    AnimatedSprite chronosSprite;
-};
-
-struct GameState {
-    ScreenState currentScreen;
-    int selectedCharacter;
-    float selectAnim;
-    int dialogueIndex = 0;
-
-    Player player;
-    Chronos chronos;
-    TileMap islandMap;
-    Vector2 mapOrigin = {0.0f, 0.0f}; // world position of the map's top-left corner
-    LightingMap lightingMap;
-    Collectible testItem;
-    Exit testExit;
-
-    int currentLoop = 1;
-    float timeRemaining = 60.0f;
-    bool gameOver = false;
-    bool victory = false;
-    GameOverReason gameOverReason = GAME_OVER_NONE;
-    bool chronosDangerous = false;
-    float chronosHitCooldown = 0.0f;
-    float playerHitFlash = 0.0f;
-    float playerShakeTimer = 0.0f;
-
-    GameAssets assets;
-
-    RenderTexture2D screenTexture;
-};
+#include <string>
 
 Vector2 getGameMousePos() {
     Vector2 mousePos = GetMousePosition();
@@ -117,48 +48,6 @@ Vector2 getGameMousePos() {
         (mousePos.y - gameRect.y) / scale
     };
 }
-
-//UI Functions:
-void drawTitle(const char* title){
-	int titleFontSize=40;
-	int titleWidth=MeasureText(title,titleFontSize);
-	DrawText(title,(SCREEN_WIDTH-titleWidth)/2,20,titleFontSize,DARKGRAY);
-
-}
-
-void draw_button(const char* title, Rectangle button,bool overHover){
-	DrawRectangleRec(button, overHover ? LIGHTGRAY : WHITE);
-    DrawRectangleLines((int)button.x, (int)button.y, (int)button.width, (int)button.height, DARKGRAY);
-    int playWidth = MeasureText(title, 20);
-    DrawText(title, (int)(button.x + (button.width - playWidth) / 2), (int)(button.y + 15), 20, DARKGRAY);
-
-}
-
-
-
-void menuLoop(void *data){
-	GameState* state = static_cast<GameState*>(data);
-	const Vector2 mousePos = getGameMousePos();
-
-	//Bounding boxes.
-	Rectangle playButton = { (SCREEN_WIDTH - 200) / 2.0f, (SCREEN_HEIGHT / 2.0f) - 40.0f, 200.0f, 50.0f };
-    Rectangle creditsButton = { (SCREEN_WIDTH - 200) / 2.0f, (SCREEN_HEIGHT / 2.0f) + 20.0f, 200.0f, 50.0f };
-
-	bool playHovered = CheckCollisionPointRec(mousePos, playButton);
-    bool creditsHovered = CheckCollisionPointRec(mousePos, creditsButton);
-
-	if (playHovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-		state->currentScreen = SCREEN_SELECT;
-    }
-	if (creditsHovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        // Trigger transition to credits state
-    }
-
-	drawTitle("Game Name");
-	draw_button("Play",playButton,playHovered);
-	draw_button("Credits",creditsButton,creditsHovered);
-}
-
 
 void selectScreen(GameState* state, Vector2 mousePos) {
     if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A))  state->selectedCharacter = 0;
@@ -414,11 +303,197 @@ void loadIslandMap(TileMap& map) {
         }
     }
 }
+// ---------------------------------------------------------------------------
+// Island 2 (reached through the portal)
+// ---------------------------------------------------------------------------
+// The layout comes from IslandLayout.cpp. Its map origin is (0, 0), so tile
+// (tx, ty) has its centre at world (tx * 16 + 8, ty * 16 + 8).
+static const int ISLAND2_W = 120;
+static const int ISLAND2_H = 90;
+static const float ISLAND2_LOOP_TIME = 90.0f;   // seconds per loop on island 2
+
+static const float CHRONOS_CHASE_SPEED = 28.0f;            // px/s
+static const float CHRONOS_CHASE_SPEED_DANGEROUS = 46.0f;  // last 15 s of a loop
+static const float YELLOW_SHADOW_SPEED = 30.0f;
+
+// Where things are on island 2 (tile coordinates, checked to be reachable).
+static const int I2_SPAWN_X = 22,  I2_SPAWN_Y = 25;   // crash site
+static const int I2_ITEM_X  = 29,  I2_ITEM_Y  = 63;   // luminous chamber
+static const int I2_EXIT_X  = 96,  I2_EXIT_Y  = 71;   // Chronos arena
+static const int I2_CHRONOS_X = 14, I2_CHRONOS_Y = 19;
+static const int I2_SHADOW_X  = 58, I2_SHADOW_Y  = 40;
+
+static Vector2 islandTileCentre(int tx, int ty) {
+    return { tx * (float)TILE_SIZE + TILE_SIZE / 2.0f,
+             ty * (float)TILE_SIZE + TILE_SIZE / 2.0f };
+}
+
+// Colour for each TileID in TilePalette.h (placeholder art, same idea as TERRAIN).
+static const Color ISLAND2_COLOURS[] = {
+    {62, 104, 56, 255},    // GRASS
+    {30, 64, 44, 255},     // DARK_GRASS
+    {90, 124, 70, 255},    // FLOWER_GRASS
+    {156, 120, 78, 255},   // DIRT
+    {132, 130, 136, 255},  // STONE_PATH
+    {196, 170, 120, 255},  // SAND
+    {26, 56, 104, 255},    // WATER
+    {96, 72, 116, 255},    // CLIFF
+    {112, 112, 128, 255},  // STONE_FLOOR
+    {54, 54, 76, 255},     // STONE_WALL
+    {92, 70, 126, 255},    // MOUNTAIN
+    {14, 44, 30, 255},     // TREE
+    {18, 52, 40, 255},     // PINE_TREE
+    {120, 120, 130, 255},  // ROCK
+    {84, 84, 108, 255},    // RUIN
+    {176, 96, 255, 255},   // RUNE
+    {255, 214, 60, 255},   // TORCH
+    {124, 88, 52, 255},    // BRIDGE
+    {214, 214, 220, 255},  // WRECKAGE
+    {190, 110, 255, 255},  // PURPLE_MAGIC
+};
+
+static bool isSolidTileId(int id) {
+    switch (id) {
+        case -1:                // outside the map
+        case TileID::WATER:
+        case TileID::CLIFF:
+        case TileID::STONE_WALL:
+        case TileID::MOUNTAIN:
+        case TileID::TREE:
+        case TileID::PINE_TREE:
+        case TileID::ROCK:
+        case TileID::RUIN:
+        case TileID::WRECKAGE:
+            return true;
+        default:
+            return false;
+    }
+}
+
+// True if a small box centred on (cx, cy) overlaps a solid island-2 tile.
+// The box is smaller than a tile (10 px) so 1-tile gaps in the maze are passable.
+static bool island2Blocked(float cx, float cy) {
+    const float half = 5.0f;
+    for (int sy = -1; sy <= 1; sy += 2) {
+        for (int sx = -1; sx <= 1; sx += 2) {
+            const int tx = (int)std::floor((cx + sx * half) / TILE_SIZE);
+            const int ty = (int)std::floor((cy + sy * half) / TILE_SIZE);
+            if (isSolidTileId(Island2TileAt(tx, ty))) return true;
+        }
+    }
+    return false;
+}
+
+static void buildIsland2Map(TileMap& map) {
+    std::vector<Color> colours(ISLAND2_COLOURS,
+                               ISLAND2_COLOURS + sizeof(ISLAND2_COLOURS) / sizeof(ISLAND2_COLOURS[0]));
+    map.LoadPlaceholderTileset(colours);
+    map.SetTint({175, 180, 185, 255});
+    BuildIsland2Map(map);
+}
+
+// Puts the player, Chronos, the shadows and the item back at their starting
+// spots for the current island. Used on restart and at the start of each loop.
+static void respawnForLoop(GameState* state) {
+    state->player.velx = 0.0f;
+    state->player.vely = 0.0f;
+    state->testItem.collected = false;
+    state->testExit.unlocked = false;
+
+    if (state->currentIsland == 1) {
+        state->player.x = SCREEN_WIDTH / 2.0f;
+        state->player.y = SCREEN_HEIGHT / 2.0f;
+        state->chronos.position = state->chronos.waypointA;
+        state->chronos.movingToB = true;
+        if (!state->shadowDefeated) {
+            state->patroller.position = {40.0f, 40.0f};
+        }
+    } else {
+        const Vector2 spawn = islandTileCentre(I2_SPAWN_X, I2_SPAWN_Y);
+        state->player.x = spawn.x;
+        state->player.y = spawn.y;
+        state->chronos.position = islandTileCentre(I2_CHRONOS_X, I2_CHRONOS_Y);
+        if (!state->yellowShadowDefeated) {
+            state->yellowShadow.position = islandTileCentre(I2_SHADOW_X, I2_SHADOW_Y);
+        }
+    }
+}
+
+// Swaps the world over to island 2 and starts a fresh run of 3 loops there.
+static void enterIsland2(GameState* state) {
+    state->islandMap.Unload();
+    state->islandMap = TileMap(ISLAND2_W, ISLAND2_H, TILE_SIZE, TILE_SIZE);
+    buildIsland2Map(state->islandMap);
+
+    state->currentIsland = 2;
+    state->mapOrigin = {0.0f, 0.0f};
+    state->lightingMap = LightingMap(ISLAND2_W * TILE_SIZE, ISLAND2_H * TILE_SIZE);
+
+    state->loopDuration = ISLAND2_LOOP_TIME;
+    state->currentLoop = 1;
+    state->timeRemaining = state->loopDuration;
+    state->gameOver = false;
+    state->victory = false;
+    state->gameOverReason = GAME_OVER_NONE;
+    state->chronosDangerous = false;
+    state->chronosHitCooldown = 0.0f;
+    state->playerHitFlash = 0.0f;
+    state->playerShakeTimer = 0.0f;
+
+    state->testItem.position = islandTileCentre(I2_ITEM_X, I2_ITEM_Y);
+    state->testExit.position = islandTileCentre(I2_EXIT_X, I2_EXIT_Y);
+
+    state->yellowShadow.speed = YELLOW_SHADOW_SPEED;
+    state->yellowShadowDefeated = false;
+
+    respawnForLoop(state);
+}
+
+void portalScreen(GameState* state, float deltaTime) {
+    const float duration = 3.0f;
+    state->portalTimer += deltaTime;
+    const float t = state->portalTimer;
+    const float grow = std::min(1.0f, t / duration);
+
+    ClearBackground(Color{ 6, 2, 14, 255 });
+    const Vector2 c = { SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f };
+
+    // Rings rushing inwards
+    for (int i = 0; i < 9; ++i) {
+        float r = 112.0f - std::fmod(i * 13.0f + t * 45.0f, 112.0f);
+        unsigned char a = (unsigned char)(40 + 150 * (1.0f - r / 112.0f));
+        DrawRing(c, r, r + 2.0f, 0.0f, 360.0f, 48, Color{ 176, 96, 255, a });
+    }
+
+    // Spinning arms
+    for (int k = 0; k < 6; ++k) {
+        float ang = t * 3.5f + k * (2.0f * PI / 6.0f);
+        float len = 30.0f + 70.0f * grow;
+        Vector2 tip = { c.x + std::cos(ang) * len, c.y + std::sin(ang) * len };
+        DrawLineEx(c, tip, 2.0f, Color{ 230, 140, 255, 200 });
+    }
+
+    // Bright core swallowing the screen
+    const float core = 6.0f + grow * grow * 150.0f;
+    DrawCircleV(c, core, Color{ 235, 215, 255, (unsigned char)(60 + 195 * grow * grow) });
+
+    if (t < duration * 0.7f) {
+        const char* msg = "The portal pulls you in...";
+        int w = MeasureText(msg, 8);
+        DrawText(msg, (SCREEN_WIDTH - w) / 2, 214, 8, Color{ 220, 190, 255, 255 });
+    }
+
+    if (t >= duration) {
+        state->portalTimer = 0.0f;
+        enterIsland2(state);
+        state->currentScreen = SCREEN_GAME;
+    }
+}
 
 void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
     if (state->gameOver && IsKeyPressed(KEY_R)) {
         state->currentLoop = 1;
-        state->timeRemaining = 60.0f;
+        state->timeRemaining = state->loopDuration;
         state->gameOver = false;
         state->victory = false;
         state->gameOverReason = GAME_OVER_NONE;
@@ -426,14 +501,7 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         state->chronosHitCooldown = 0.0f;
         state->playerHitFlash = 0.0f;
         state->playerShakeTimer = 0.0f;
-        state->testItem.collected = false;
-        state->testExit.unlocked = false;
-        state->player.x = SCREEN_WIDTH / 2.0f;
-        state->player.y = SCREEN_HEIGHT / 2.0f;
-        state->player.velx = 0.0f;
-        state->player.vely = 0.0f;
-        state->chronos.position = state->chronos.waypointA;
-        state->chronos.movingToB = true;
+        respawnForLoop(state);
     }
 
     if (!state->gameOver && !state->victory && state->timeRemaining > 0.0f) {
@@ -446,15 +514,8 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         if (state->timeRemaining <= 0.0f) {
             if (state->currentLoop < 3) {
                 state->currentLoop++;
-                state->timeRemaining = 60.0f;
-
-                state->player.x = SCREEN_WIDTH / 2.0f;
-                state->player.y = SCREEN_HEIGHT / 2.0f;
-                state->player.velx = 0.0f;
-                state->player.vely = 0.0f;
-                state->chronos.position = state->chronos.waypointA;
-                state->chronos.movingToB = true;
-                state->testItem.collected = false;
+                state->timeRemaining = state->loopDuration;
+                respawnForLoop(state);
                 state->chronosHitCooldown = 0.0f;
                 state->playerHitFlash = 0.0f;
                 state->playerShakeTimer = 0.0f;
@@ -472,7 +533,20 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         state->timeRemaining <= 15.0f;
 
     if (!state->victory) {
-        updateChronos(state->chronos, deltaTime, state->chronosDangerous);
+        if (state->currentIsland == 1) {
+            updateChronos(state->chronos, deltaTime, state->chronosDangerous);
+        } else if (!state->gameOver) {
+            // Island 2: Chronos hunts you instead of patrolling between waypoints.
+            const float cdx = state->player.x - state->chronos.position.x;
+            const float cdy = state->player.y - state->chronos.position.y;
+            const float cdist = std::sqrt(cdx * cdx + cdy * cdy);
+            if (cdist > 1.0f) {
+                const float speed = state->chronosDangerous
+                    ? CHRONOS_CHASE_SPEED_DANGEROUS : CHRONOS_CHASE_SPEED;
+                state->chronos.position.x += (cdx / cdist) * speed * deltaTime;
+                state->chronos.position.y += (cdy / cdist) * speed * deltaTime;
+            }
+        }
     }
 
     // The camera keeps the player at the centre of the screen, and mousePos is
@@ -481,6 +555,63 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         mousePos.y - SCREEN_HEIGHT / 2.0f,
         mousePos.x - SCREEN_WIDTH / 2.0f
     );
+
+    if (state->currentIsland == 1 && !state->gameOver && !state->victory && !state->shadowDefeated) {
+        float edx = state->player.x - state->patroller.position.x;
+        float edy = state->player.y - state->patroller.position.y;
+        float edist = std::sqrt(edx * edx + edy * edy);
+        if (edist > 1.0f) {
+            state->patroller.position.x += (edx / edist) * state->patroller.speed * deltaTime;
+            state->patroller.position.y += (edy / edist) * state->patroller.speed * deltaTime;
+        }
+
+        Rectangle playerBounds = {
+            state->player.x - PLAYER_RECT_SIZE * 0.5f,
+            state->player.y - PLAYER_RECT_SIZE * 0.5f,
+            PLAYER_RECT_SIZE,
+            PLAYER_RECT_SIZE
+        };
+        Rectangle enemyBounds = {
+            state->patroller.position.x - 6.0f,
+            state->patroller.position.y - 6.0f,
+            12.0f,
+            12.0f
+        };
+
+        if (CheckCollisionRecs(playerBounds, enemyBounds)) {
+            state->currentScreen = SCREEN_BATTLE;
+            state->battleCursorPos = 0.0f;
+            state->battleEnded = false;
+            state->battleWon = false;
+            state->battleResultTimer = 0.0f;
+        }
+    }
+
+    // Island 2: the yellow shadow chases you; when it reaches you it asks a riddle.
+    if (state->currentIsland == 2 && !state->gameOver && !state->victory &&
+        !state->yellowShadowDefeated) {
+        const float ydx = state->player.x - state->yellowShadow.position.x;
+        const float ydy = state->player.y - state->yellowShadow.position.y;
+        const float ydist = std::sqrt(ydx * ydx + ydy * ydy);
+        if (ydist > 1.0f) {
+            state->yellowShadow.position.x += (ydx / ydist) * state->yellowShadow.speed * deltaTime;
+            state->yellowShadow.position.y += (ydy / ydist) * state->yellowShadow.speed * deltaTime;
+        }
+
+        const Rectangle yPlayer = {
+            state->player.x - PLAYER_RECT_SIZE * 0.5f,
+            state->player.y - PLAYER_RECT_SIZE * 0.5f,
+            PLAYER_RECT_SIZE, PLAYER_RECT_SIZE
+        };
+        const Rectangle yEnemy = {
+            state->yellowShadow.position.x - 6.0f,
+            state->yellowShadow.position.y - 6.0f,
+            12.0f, 12.0f
+        };
+        if (CheckCollisionRecs(yPlayer, yEnemy)) {
+            startRiddle(state);
+        }
+    }
 
     if (!state->gameOver && !state->victory) {
         state->chronosHitCooldown = std::max(0.0f, state->chronosHitCooldown - deltaTime);
@@ -499,8 +630,19 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
             PLAYER_ACCELERATION * deltaTime
         );
 
-        state->player.x += state->player.velx * deltaTime;
-        state->player.y += state->player.vely * deltaTime;
+        const float nextX = state->player.x + state->player.velx * deltaTime;
+        if (state->currentIsland == 2 && island2Blocked(nextX, state->player.y)) {
+            state->player.velx = 0.0f;
+        } else {
+            state->player.x = nextX;
+        }
+
+        const float nextY = state->player.y + state->player.vely * deltaTime;
+        if (state->currentIsland == 2 && island2Blocked(state->player.x, nextY)) {
+            state->player.vely = 0.0f;
+        } else {
+            state->player.y = nextY;
+        }
 
         clampPlayerToWorld(state);
     }
@@ -529,8 +671,15 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
                 const float safeDistance = std::max(distance, 0.001f);
                 const float pushX = dx / safeDistance;
                 const float pushY = dy / safeDistance;
+                const float oldX = state->player.x;
+                const float oldY = state->player.y;
                 state->player.x += pushX * 30.0f;
                 state->player.y += pushY * 30.0f;
+                if (state->currentIsland == 2 &&
+                    island2Blocked(state->player.x, state->player.y)) {
+                    state->player.x = oldX;   // wall in the way: no knockback
+                    state->player.y = oldY;
+                }
                 state->player.velx = pushX * 80.0f;
                 state->player.vely = pushY * 80.0f;
                 clampPlayerToWorld(state);
@@ -559,7 +708,12 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         const float distance = std::sqrt(dx * dx + dy * dy);
 
         if (distance <= 18.0f) {
-            state->victory = true;
+            if (state->currentIsland == 1) {
+                state->portalTimer = 0.0f;
+                state->currentScreen = SCREEN_PORTAL;   // step through to island 2
+            } else {
+                state->victory = true;                  // escaped for real
+            }
         }
     }
 
@@ -587,22 +741,35 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
     state->islandMap.DrawView(view, state->mapOrigin, false);
 
     // Temporary occlusion-test wall; replace with the map's obstacle data later.
-    DrawRectangle(140, 58, 4, 108, DARKGRAY);
+    if (state->currentIsland == 1) {
+        DrawRectangle(140, 58, 4, 108, DARKGRAY);
+    }
+
+    if (state->currentIsland == 1 && !state->shadowDefeated) {
+        DrawRectangle(
+            (int)state->patroller.position.x - 6,
+            (int)state->patroller.position.y - 6,
+            12,
+            12,
+            MAROON
+        );
+    }
+
+    if (state->currentIsland == 2 && !state->yellowShadowDefeated) {
+        const bool flicker = static_cast<int>(GetTime() * 6.0) % 2 == 0;
+        DrawRectangle(
+            (int)state->yellowShadow.position.x - 6,
+            (int)state->yellowShadow.position.y - 6,
+            12, 12,
+            flicker ? Color{255, 214, 60, 255} : Color{210, 170, 30, 255}
+        );
+    }
 
     Color chronosColor = DARKGRAY;
-
     if (state->chronosDangerous &&
         static_cast<int>(GetTime() * 4.0) % 2 == 0) {
         chronosColor = RED;
     }
-
-    // DrawCircleV(
-    //     state->chronos.position,
-    //     8.0f,
-    //     chronosColor
-    // );
-
-    // draw chronos
 
     state->assets.chronosSprite.updateFrame(deltaTime);
     DrawTexturePro(
@@ -663,6 +830,7 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         (int)view.x - originX, (int)view.y - originY,   // top-left of the screen, map-local
         SCREEN_WIDTH, SCREEN_HEIGHT
     );
+
     // Item and exit live in the world, so they go through the camera too.
     BeginMode2D(camera);
 
@@ -695,6 +863,23 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         RAYWHITE
     );
 
+    if (!state->gameOver && !state->victory) {
+        const float pdx = state->player.x - state->testItem.position.x;
+        const float pdy = state->player.y - state->testItem.position.y;
+        const float edx2 = state->player.x - state->testExit.position.x;
+        const float edy2 = state->player.y - state->testExit.position.y;
+        if (!state->testItem.collected && std::sqrt(pdx * pdx + pdy * pdy) <= 28.0f) {
+            DrawText("Press E to take", 70, 190, 10, GOLD);
+        } else if (std::sqrt(edx2 * edx2 + edy2 * edy2) <= 30.0f) {
+            if (state->testExit.unlocked) {
+                DrawText(state->currentIsland == 1 ? "Press E to enter portal" : "Press E to escape",
+                         state->currentIsland == 1 ? 46 : 68, 190, 10, GREEN);
+            } else {
+                DrawText("Find the item first", 64, 190, 10, LIGHTGRAY);
+            }
+        }
+    }
+
     if (state->victory) {
         DrawRectangle(30, 82, SCREEN_WIDTH - 60, 76, Color{10, 30, 18, 235});
         DrawRectangleLines(30, 82, SCREEN_WIDTH - 60, 76, GREEN);
@@ -706,6 +891,9 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         if (state->gameOverReason == GAME_OVER_CAUGHT) {
             DrawText("CAUGHT!", 80, 96, 22, RED);
             DrawText("Chronos caught you.", 63, 124, 10, RAYWHITE);
+        } else if (state->gameOverReason == GAME_OVER_SHADOW) {
+            DrawText("CAUGHT!", 80, 96, 22, RED);
+            DrawText("The shadow took you.", 60, 124, 10, RAYWHITE);
         } else {
             DrawText("TIME OVER", 76, 96, 22, RED);
             DrawText("You failed to escape.", 58, 124, 10, RAYWHITE);
@@ -740,6 +928,192 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
     DrawText(loopText.c_str(), 8, 22, 10, RAYWHITE);
 }
 
+void battleScreen(GameState* state, float deltaTime) {
+    if (!state->battleEnded) {
+        state->battleCursorPos = (std::sin((float)GetTime() * 6.0f * 0.9f) + 1.0f) * 0.5f;
+
+        if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            state->battleEnded = true;
+            if (state->battleCursorPos >= 0.32f && state->battleCursorPos <= 0.68f) {
+                state->battleWon = true;
+            } else {
+                state->battleWon = false;
+            }
+        }
+    } else {
+        state->battleResultTimer += deltaTime;
+        if (state->battleResultTimer >= 1.5f) {
+            if (state->battleWon) {
+                state->currentScreen = SCREEN_SAMARTH_DIALOGUE;
+                state->samarthLineIndex = 0;
+                state->samarthChoiceActive = false;
+                state->samarthResponded = false;
+                state->samarthResponseTimer = 0.0f;
+            } else {
+                state->gameOver = true;
+                state->gameOverReason = GAME_OVER_CAUGHT;
+                state->currentScreen = SCREEN_GAME;
+            }
+            state->battleResultTimer = 0.0f;
+        }
+    }
+
+    ClearBackground(Color{ 15, 10, 25, 255 });
+    DrawTriangle((Vector2){0, 0}, (Vector2){240, 0}, (Vector2){0, 240}, Color{ 180, 15, 15, 25 });
+
+    DrawRectangle(130, 12, 100, 24, BLACK);
+    DrawRectangleLines(130, 12, 100, 24, RED);
+    DrawText("TIME SHADOW", 136, 18, 8, RAYWHITE);
+    
+    DrawRectangle(180, 38, 48, 48, Color{ 40, 10, 30, 255 });
+    DrawRectangleLines(180, 38, 48, 48, RED);
+    DrawText("SHADOW", 185, 58, 6, RED);
+
+    DrawRectangle(10, SCREEN_HEIGHT - 65, 90, 22, BLACK);
+    DrawRectangleLines(10, SCREEN_HEIGHT - 65, 90, 22, RED);
+    const char* charName = (state->selectedCharacter == 0) ? "JAMIE" : "CAROL";
+    DrawText(charName, 16, SCREEN_HEIGHT - 58, 8, RAYWHITE);
+    
+    if (state->assets.players[state->selectedCharacter].id != 0) {
+        DrawTexturePro(
+            state->assets.players[state->selectedCharacter],
+            {0, 0, (float)PLAYER_RECT_SIZE, (float)PLAYER_RECT_SIZE},
+            {26.0f, (float)SCREEN_HEIGHT - 118.0f, 48.0f, 48.0f},
+            {0, 0}, 0.0f, WHITE
+        );
+    }
+
+    int barX = 30;
+    int barY = 110;
+    int barW = SCREEN_WIDTH - 60;
+    int barH = 22;
+
+    DrawRectangle(barX, barY, barW, barH, BLACK);
+    DrawRectangleLines(barX, barY, barW, barH, RED);
+
+    int sweetZoneW = (int)(barW * 0.36f);
+    int sweetZoneX = barX + (barW - sweetZoneW) / 2;
+    DrawRectangle(sweetZoneX, barY, sweetZoneW, barH, Color{ 50, 220, 50, 190 });
+
+    int cursorX = barX + (int)(state->battleCursorPos * barW);
+    DrawRectangle(cursorX - 2, barY - 5, 4, barH + 10, YELLOW);
+
+    if (!state->battleEnded) {
+        DrawText("Press [SPACE] in green zone!", 42, 85, 8, RAYWHITE);
+    } else {
+        if (state->battleWon) {
+            DrawRectangle(30, 145, SCREEN_WIDTH - 60, 42, Color{ 10, 40, 20, 245 });
+            DrawRectangleLines(30, 145, SCREEN_WIDTH - 60, 42, GREEN);
+            DrawText("Shadow Defeated!", 70, 161, 8, GREEN);
+        } else {
+            DrawRectangle(30, 145, SCREEN_WIDTH - 60, 42, Color{ 40, 10, 10, 245 });
+            DrawRectangleLines(30, 145, SCREEN_WIDTH - 60, 42, RED);
+            DrawText("Defeated...", 90, 161, 10, RED);
+        }
+    }
+}
+
+void samarthDialogueScreen(GameState* state, float deltaTime) {
+    const char* lines[] = {
+        "Hey there, I was trapped inside that shadow, thanks for freeing me",
+        "Chronos has trapped me and several other humans on this island",
+        "Chronos has witnessed humans wasting time and resources",
+        "Thus he has decided that humans shall spend all of eternity in a loop",
+        state->selectedCharacter == 0 
+            ? "You're the only hope Jamie, are you in or out" 
+            : "You're the only hope Carol, are you in or out"
+    };
+    const int totalLines = 5;
+
+    if (!state->samarthChoiceActive && !state->samarthResponded) {
+        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            state->samarthLineIndex++;
+            if (state->samarthLineIndex >= totalLines) {
+                state->samarthChoiceActive = true;
+            }
+        }
+    } else if (state->samarthChoiceActive && !state->samarthResponded) {
+        if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
+            state->samarthChoiceSelected = 0;
+        }
+        if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
+            state->samarthChoiceSelected = 1;
+        }
+
+        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            if (state->samarthChoiceSelected == 0) {
+                state->luckPoints += 1;
+                state->acceptedChallenge = true;
+            } else {
+                state->acceptedChallenge = false;
+            }
+            state->samarthChoiceActive = false;
+            state->samarthResponded = true;
+            state->samarthResponseTimer = 0.0f;
+        }
+    } else {
+        state->samarthResponseTimer += deltaTime;
+        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || state->samarthResponseTimer >= 3.5f) {
+            state->currentScreen = SCREEN_GAME;
+            state->samarthResponded = false;
+            state->samarthLineIndex = 0;
+            state->shadowDefeated = true; // Permanently mark shadow as defeated
+            state->patroller.position = { -999.0f, -999.0f }; // Send shadow off-screen
+            state->samarthResponseTimer = 0.0f;
+        }
+    }
+
+    ClearBackground(Color{ 10, 10, 15, 255 });
+
+    // 1. Dialogue Box Background
+    DrawRectangle(10, 145, SCREEN_WIDTH - 20, 85, Color{ 15, 15, 25, 240 });
+    DrawRectangleLines(10, 145, SCREEN_WIDTH - 20, 85, BLUE);
+
+    // 2. Speaker Nameplate floating properly above the dialogue box
+    DrawRectangle(16, 127, 72, 18, BLACK);
+    DrawRectangleLines(16, 127, 72, 18, BLUE);
+    DrawText("SAMARTH", 20, 132, 8, BLUE);
+
+    if (!state->samarthChoiceActive && !state->samarthResponded) {
+        std::string currentText = lines[state->samarthLineIndex];
+        int maxCharsPerLine = 34;
+        std::string line1 = (currentText.length() > maxCharsPerLine) ? currentText.substr(0, maxCharsPerLine) : currentText;
+        std::string line2 = (currentText.length() > maxCharsPerLine) ? currentText.substr(maxCharsPerLine) : "";
+
+        DrawText(line1.c_str(), 20, 160, 8, RAYWHITE);
+        DrawText(line2.c_str(), 20, 175, 8, RAYWHITE);
+
+        if (static_cast<int>(GetTime() * 3.0) % 2 == 0) {
+            DrawText("[CLICK / ENTER]", SCREEN_WIDTH - 90, 215, 6, BLUE);
+        }
+    } else if (state->samarthChoiceActive && !state->samarthResponded) {
+        DrawText("Make your choice:", 20, 152, 8, SKYBLUE);
+
+        Rectangle opt1Rect = { 35.0f, 168.0f, 170.0f, 20.0f };
+        DrawRectangleRec(opt1Rect, state->samarthChoiceSelected == 0 ? Color{ 20, 80, 160, 230 } : Color{ 20, 20, 30, 230 });
+        DrawRectangleLines((int)opt1Rect.x, (int)opt1Rect.y, (int)opt1Rect.width, (int)opt1Rect.height, BLUE);
+        DrawText("Yes I'm in", (int)opt1Rect.x + 10, (int)opt1Rect.y + 6, 8, RAYWHITE);
+
+        Rectangle opt2Rect = { 35.0f, 192.0f, 170.0f, 20.0f };
+        DrawRectangleRec(opt2Rect, state->samarthChoiceSelected == 1 ? Color{ 160, 40, 40, 230 } : Color{ 20, 20, 30, 230 });
+        DrawRectangleLines((int)opt2Rect.x, (int)opt2Rect.y, (int)opt2Rect.width, (int)opt2Rect.height, RED);
+        DrawText("I don't care", (int)opt2Rect.x + 10, (int)opt2Rect.y + 6, 8, RAYWHITE);
+    } else {
+        if (state->acceptedChallenge) {
+            DrawText("Thats the spirit, I will be cheering", 20, 156, 8, SKYBLUE);
+            DrawText("you on all the way!", 20, 168, 8, SKYBLUE);
+            DrawText("-> I feel Samarth's resolve motivating me", 20, 190, 7, GOLD);
+        } else {
+            DrawText("That's too bad, I thought you'd be", 20, 160, 8, LIGHTGRAY);
+            DrawText("the one to save humanity...", 20, 174, 8, LIGHTGRAY);
+        }
+
+        if (static_cast<int>(GetTime() * 3.0) % 2 == 0) {
+            DrawText("[CLICK / ENTER]", SCREEN_WIDTH - 90, 215, 6, BLUE);
+        }
+    }
+}
+
 void mainLoop(void* data) {
     GameState* state = (GameState*)data;
     if (IsAudioDeviceReady() && !IsMusicStreamPlaying(state->assets.bgm)) {
@@ -755,14 +1129,23 @@ void mainLoop(void* data) {
 
     BeginTextureMode(state->screenTexture);
         if (state->currentScreen == SCREEN_MENU) {
-			ClearBackground(WHITE);
-			menuLoop(state);
-		} else if (state->currentScreen == SCREEN_SELECT) {
+            menuScreen(state, gameMousePos);
+        } else if (state->currentScreen == SCREEN_CREDITS) {
+            creditsScreen(state, gameMousePos);
+        } else if (state->currentScreen == SCREEN_SELECT) {
             selectScreen(state, gameMousePos);
         } else if (state->currentScreen == SCREEN_DIALOGUE) {
             dialogueScreen(state);
         } else if (state->currentScreen == SCREEN_GAME) {
             gameScreen(state, gameMousePos, deltaTime);
+        } else if (state->currentScreen == SCREEN_BATTLE) {
+            battleScreen(state, deltaTime);
+        } else if (state->currentScreen == SCREEN_SAMARTH_DIALOGUE) {
+            samarthDialogueScreen(state, deltaTime);
+        } else if (state->currentScreen == SCREEN_PORTAL) {
+            portalScreen(state, deltaTime);
+        } else if (state->currentScreen == SCREEN_RIDDLE) {
+            riddleScreen(state, deltaTime);
         }
     EndTextureMode();
 
@@ -821,7 +1204,7 @@ GameAssets loadAssets() {
     assets.players[0] = LoadTexture("assets/player_jamie.png");
     assets.players[1] = LoadTexture("assets/player_carol.png");
 
-    assets.bgm = LoadMusicStream("assets/oooscary.mp3");
+    assets.bgm = LoadMusicStream("assets/AreaOne.mp3");
     assets.bgm.looping = true;
     SetMusicVolume(assets.bgm, 0.7f);
     PlayMusicStream(assets.bgm);
@@ -864,6 +1247,13 @@ int main(int argc, char** argv) {
     state.player = {SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f};
     state.testItem.position = {80.0f, 80.0f};
     state.testItem.collected = false;
+    
+    // Initialize patroller shadow position & speed
+    state.patroller.position = {40.0f, 40.0f};
+    state.patroller.speed = 25.0f;
+    state.yellowShadow.speed = YELLOW_SHADOW_SPEED;
+    state.shadowDefeated = false;
+
     state.currentScreen = SCREEN_SELECT;
     state.selectedCharacter = 0;
     state.selectAnim = 0.0f;

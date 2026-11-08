@@ -2,6 +2,7 @@
 
 #include <raylib.h>
 #include <vector>
+#include <string>
 
 #include "defines.h"
 #include "chronos.h"
@@ -46,6 +47,7 @@ struct GameState {
     int selectedCharacter;
     float selectAnim;
     int dialogueIndex = 0;
+    int menuSelection = 0;   // 0 = Play, 1 = Credits
 
     Player player;
     Chronos chronos;
@@ -55,6 +57,23 @@ struct GameState {
     Collectible testItem;
     Exit testExit;
     Enemy patroller;
+
+    // Island 2: portal trip, loop length, and the yellow riddle shadow
+    int currentIsland = 1;
+    float portalTimer = 0.0f;
+    float loopDuration = 60.0f;
+    Enemy yellowShadow;
+    bool yellowShadowDefeated = false;
+
+    // Riddle (wordle-style) minigame
+    int riddleIndex = 0;
+    int riddlePhase = 0;          // 0 intro, 1 typing, 2 solved, 3 failed
+    int riddleIntroLine = 0;
+    int riddleTriesLeft = 3;
+    float riddleTimer = 0.0f;
+    std::string riddleInput;
+    std::string riddleMessage;
+    std::vector<std::string> riddleGuesses;
 
     int currentLoop = 1;
     float timeRemaining = 60.0f;
@@ -92,3 +111,6 @@ struct GameState {
 
     RenderTexture2D screenTexture;
 };
+// riddle.cpp
+void startRiddle(GameState* state);
+void riddleScreen(GameState* state, float deltaTime);
