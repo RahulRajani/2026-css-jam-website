@@ -478,6 +478,8 @@ void gameScreen(GameState* state, Vector2 mousePos, float deltaTime) {
         updateChronos(state->chronos, deltaTime, state->chronosDangerous);
     }
 
+    state->testExit.unlocked = state->collectiblesCollected >= state->collectibles.size();
+
     // The camera keeps the player at the centre of the screen, and mousePos is
     // in screen space, so the aim angle is measured from the screen centre.
     float playerMouseAngle = std::atan2(
